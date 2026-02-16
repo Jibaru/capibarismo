@@ -31,15 +31,28 @@ interface VSScreenProps {
   };
   onVote: (winner: 'A' | 'B') => void;
   isSubmitting?: boolean;
+  roundLabel?: string;
 }
 
-export function VSScreen({ pair, onVote, isSubmitting }: VSScreenProps) {
+export function VSScreen({ pair, onVote, isSubmitting, roundLabel }: VSScreenProps) {
   const { reducedMotion } = useGameUIStore();
   const [showDonationModal, setShowDonationModal] = useState(false);
   const posthog = usePostHog();
   
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-2 sm:p-4 md:p-8">
+      {/* Round label above VS */}
+      {roundLabel && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none">
+          <span
+            className="text-[8px] sm:text-[10px] text-white/60 uppercase tracking-widest"
+            style={{ fontFamily: "'Press Start 2P', cursive" }}
+          >
+            {roundLabel}
+          </span>
+        </div>
+      )}
+
       {/* VS Logo in center - adjusted for mobile */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
         <motion.div

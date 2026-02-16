@@ -2,49 +2,37 @@ import { useEffect } from 'react';
 import { VSScreen } from '@/components/game/VSScreen';
 import { GameHUD } from '@/components/game/GameHUD';
 import { CandidateInfoOverlay } from '@/components/game/CandidateInfoOverlay';
-import { CompletionModal } from '@/components/game/CompletionModal';
 import { OnboardingModal } from '@/components/game/OnboardingModal';
+import { BracketView } from '@/components/tournament/BracketView';
+import { PickFromThree } from '@/components/tournament/PickFromThree';
+import { RoundTransition } from '@/components/tournament/RoundTransition';
+import { PodiumScreen } from '@/components/tournament/PodiumScreen';
 import { useGameUIStore } from '@/store/useGameUIStore';
-import { useNextPair, getSessionId } from '@/hooks/useGameAPI';
-import { useOptimisticVote } from '@/hooks/useOptimisticVote';
-import { useGameCompletion } from '@/hooks/useGameCompletion';
-import { useGameKeyboard } from '@/hooks/useGameKeyboard';
-import { Button } from '@/components/ui/button';
-import { COMPLETION_GOAL } from '@/lib/gameConstants';
-import { useNavigate } from 'react-router-dom';
-import { sessionService } from '@/services/sessionService';
+import { useTournamentStore } from '@/store/useTournamentStore';
+import {
+  getCurrentMatch,
+  getMatchProgress,
+  getEliminatedInRound,
+  getAdvancingFromRound,
+} from '@/services/tournamentService';
+import { findCandidateBase } from '@/data';
 import { useTrackJugarView } from '@/lib/posthog';
 
 export function JugarPage() {
-  const sessionId = getSessionId();
-
   const {
-    closeCandidateInfo,
-    setReducedMotion,
-    completionModalOpen,
-  } = useGameUIStore();
+    state: tournament,
+    startNewTournament,
+    submitVote,
+    submitRunnerUp,
+    advanceFromRoundTransition,
+    goToBracketPreview,
+    startPlaying,
+    resetTournament,
+  } = useTournamentStore();
 
-  const {
-    data: pair,
-    isLoading: pairLoading,
-    isFetching: pairFetching,
-    error: pairError
-  } = useNextPair();
+  const { setReducedMotion } = useGameUIStore();
 
-  const { voteCount, handleVote, isSubmitting } = useOptimisticVote(sessionId);
-
-  useTrackJugarView({ sessionId });
-
-  // Handle game completion modal (now handles both tiers)
-  useGameCompletion(voteCount);
-
-  // Handle keyboard controls - disable when modal is open
-  useGameKeyboard({
-    onVoteA: () => pair && !completionModalOpen && handleVote(pair, 'A'),
-    onVoteB: () => pair && !completionModalOpen && handleVote(pair, 'B'),
-    onEscape: closeCandidateInfo,
-    enabled: !!pair && !completionModalOpen,
-  });
+  useTrackJugarView({ sessionId: tournament?.id ?? 'none' });
 
   // Check for prefers-reduced-motion
   useEffect(() => {
@@ -56,62 +44,243 @@ export function JugarPage() {
     return () => mediaQuery.removeEventListener('change', handler);
   }, [setReducedMotion]);
 
-  // Initial load spinner
-  if (pairLoading) {
+  // No tournament → show onboarding to start one
+  if (!tournament) {
     return (
-      <div className="min-h-screen fighting-game-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-primary/30 border-t-primary mx-auto mb-4"></div>
-          <p className="text-white text-base sm:text-lg">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (pairError || !pair) {
-    return (
-      <div className="min-h-screen fighting-game-bg flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Error</h2>
-          <p className="text-sm sm:text-base text-white/80 mb-4">
-            {pairError
-              ? `Error al cargar el juego: ${pairError instanceof Error ? pairError.message : 'Error desconocido'}`
-              : 'No hay pares disponibles. Por favor intenta de nuevo.'}
-          </p>
-          {pairError && (
-            <p className="text-white/60 text-xs sm:text-sm mb-4">
-              Session ID: {sessionId}
-            </p>
-          )}
-          <Button onClick={() => window.location.reload()}>
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading while submitting vote OR fetching next pair (refetch)
-  const isLoadingNext = isSubmitting || pairFetching;
-
-  return (
-    <div className="min-h-screen fighting-game-bg flex flex-col">
-      {/* HUD - now calculates its own progress based on comparisons */}
-      <GameHUD comparisons={voteCount} />
-
-      {/* Main game area */}
-      <div className="flex-1 relative overflow-hidden">
-        <VSScreen
-          pair={pair}
-          onVote={(winner) => !completionModalOpen && handleVote(pair, winner)}
-          isSubmitting={isLoadingNext || completionModalOpen}
+      <div className="min-h-screen fighting-game-bg flex flex-col">
+        <OnboardingModal
+          open={true}
+          onStart={() => {
+            startNewTournament();
+            // After creating, advance to bracket preview
+            goToBracketPreview();
+          }}
         />
+        <CandidateInfoOverlay />
       </div>
+    );
+  }
 
-      {/* Overlays */}
-      <CandidateInfoOverlay />
-      <CompletionModal />
-      <OnboardingModal />
-    </div>
-  );
+  const progress = getMatchProgress(tournament);
+  const currentMatch = getCurrentMatch(tournament);
+
+  // Phase-based rendering
+  switch (tournament.phase) {
+    case 'onboarding':
+      return (
+        <div className="min-h-screen fighting-game-bg flex flex-col">
+          <OnboardingModal open={true} onStart={goToBracketPreview} />
+          <CandidateInfoOverlay />
+        </div>
+      );
+
+    case 'bracket-preview':
+      return (
+        <>
+          <BracketView
+            bracket={tournament.bracket}
+            currentRound={tournament.currentRound}
+            currentMatchIndex={tournament.currentMatchIndex}
+            onStart={startPlaying}
+            isPreview={true}
+          />
+          <CandidateInfoOverlay />
+        </>
+      );
+
+    case 'playing-1v1': {
+      if (!currentMatch) return null;
+
+      const candidateA = findCandidateBase(currentMatch.candidates[0]);
+      const candidateB = findCandidateBase(currentMatch.candidates[1]);
+
+      if (!candidateA || !candidateB) return null;
+
+      const pair = {
+        pairId: currentMatch.id,
+        a: {
+          id: candidateA.id,
+          nombre: candidateA.nombre,
+          ideologia: candidateA.ideologia ?? undefined,
+          fullBody: candidateA.fullBody,
+          headshot: candidateA.headshot,
+          partyIcon: candidateA.partyIcon,
+          partido: candidateA.partido,
+        },
+        b: {
+          id: candidateB.id,
+          nombre: candidateB.nombre,
+          ideologia: candidateB.ideologia ?? undefined,
+          fullBody: candidateB.fullBody,
+          headshot: candidateB.headshot,
+          partyIcon: candidateB.partyIcon,
+          partido: candidateB.partido,
+        },
+      };
+
+      return (
+        <div className="min-h-screen fighting-game-bg flex flex-col">
+          <GameHUD
+            roundLabel={progress.roundLabel}
+            matchLabel={progress.matchLabel}
+            overallProgress={progress.overallPercent}
+            onViewBracket={goToBracketPreview}
+            onNewGame={resetTournament}
+          />
+          <div className="flex-1 relative overflow-hidden">
+            <VSScreen
+              pair={pair}
+              onVote={(winner) => {
+                const winnerId = winner === 'A' ? candidateA.id : candidateB.id;
+                submitVote(winnerId);
+              }}
+              roundLabel={progress.roundLabel}
+            />
+          </div>
+          <CandidateInfoOverlay />
+        </div>
+      );
+    }
+
+    case 'round-transition': {
+      const completedRound = tournament.currentRound;
+      const eliminated = getEliminatedInRound(tournament, completedRound);
+      const advancing = getAdvancingFromRound(tournament, completedRound);
+
+      return (
+        <>
+          <RoundTransition
+            roundIndex={completedRound}
+            eliminatedIds={eliminated}
+            advancingIds={advancing}
+            onContinue={advanceFromRoundTransition}
+          />
+          <CandidateInfoOverlay />
+        </>
+      );
+    }
+
+    case 'playing-pick-three': {
+      if (!currentMatch) return null;
+
+      return (
+        <div className="min-h-screen fighting-game-bg flex flex-col">
+          <GameHUD
+            roundLabel={progress.roundLabel}
+            matchLabel={progress.matchLabel}
+            overallProgress={progress.overallPercent}
+            onViewBracket={goToBracketPreview}
+            onNewGame={resetTournament}
+          />
+          <div className="flex-1 relative overflow-hidden">
+            <PickFromThree
+              candidateIds={currentMatch.candidates}
+              onSelect={(winnerId) => submitVote(winnerId)}
+              context="semifinal"
+              groupIndex={tournament.currentMatchIndex}
+            />
+          </div>
+          <CandidateInfoOverlay />
+        </div>
+      );
+    }
+
+    case 'final-champion': {
+      if (!currentMatch) return null;
+
+      return (
+        <div className="min-h-screen fighting-game-bg flex flex-col">
+          <GameHUD
+            roundLabel={progress.roundLabel}
+            matchLabel={progress.matchLabel}
+            overallProgress={progress.overallPercent}
+            onViewBracket={goToBracketPreview}
+            onNewGame={resetTournament}
+          />
+          <div className="flex-1 relative overflow-hidden">
+            <PickFromThree
+              candidateIds={currentMatch.candidates}
+              onSelect={(winnerId) => submitVote(winnerId)}
+              context="champion"
+            />
+          </div>
+          <CandidateInfoOverlay />
+        </div>
+      );
+    }
+
+    case 'final-runner-up': {
+      const finalMatch = tournament.bracket.rounds[3].matches[0];
+      const remaining = finalMatch.eliminated;
+
+      if (remaining.length < 2) return null;
+
+      const candidateA = findCandidateBase(remaining[0]);
+      const candidateB = findCandidateBase(remaining[1]);
+
+      if (!candidateA || !candidateB) return null;
+
+      const pair = {
+        pairId: 'final-runner-up',
+        a: {
+          id: candidateA.id,
+          nombre: candidateA.nombre,
+          ideologia: candidateA.ideologia ?? undefined,
+          fullBody: candidateA.fullBody,
+          headshot: candidateA.headshot,
+          partyIcon: candidateA.partyIcon,
+          partido: candidateA.partido,
+        },
+        b: {
+          id: candidateB.id,
+          nombre: candidateB.nombre,
+          ideologia: candidateB.ideologia ?? undefined,
+          fullBody: candidateB.fullBody,
+          headshot: candidateB.headshot,
+          partyIcon: candidateB.partyIcon,
+          partido: candidateB.partido,
+        },
+      };
+
+      return (
+        <div className="min-h-screen fighting-game-bg flex flex-col">
+          <GameHUD
+            roundLabel="Gran Final"
+            matchLabel="Elige al subcampeón"
+            overallProgress={progress.overallPercent}
+            onViewBracket={goToBracketPreview}
+            onNewGame={resetTournament}
+          />
+          <div className="flex-1 relative overflow-hidden">
+            <VSScreen
+              pair={pair}
+              onVote={(winner) => {
+                const runnerUpId = winner === 'A' ? candidateA.id : candidateB.id;
+                submitRunnerUp(runnerUpId);
+              }}
+              roundLabel="ELIGE AL SUBCAMPEÓN"
+            />
+          </div>
+          <CandidateInfoOverlay />
+        </div>
+      );
+    }
+
+    case 'podium': {
+      if (!tournament.podium) return null;
+
+      return (
+        <>
+          <PodiumScreen
+            podium={tournament.podium}
+            onPlayAgain={resetTournament}
+          />
+          <CandidateInfoOverlay />
+        </>
+      );
+    }
+
+    default:
+      return null;
+  }
 }

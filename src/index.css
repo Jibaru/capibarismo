@@ -482,4 +482,33 @@
     max-height: 100%; /* Prevent clipping */
     overflow: hidden; /* Avoid overflow issues */
   }
+
+  /* Tournament confetti animation */
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(-10vh) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(110vh) rotate(720deg);
+      opacity: 0;
+    }
+  }
+
+  .animate-confetti-fall {
+    animation: confetti-fall 4s linear infinite;
+  }
+
+  /* Color cycling for GAME OVER text */
+  @keyframes color-cycle {
+    0% { color: #facc15; }
+    25% { color: #f43f5e; }
+    50% { color: #a855f7; }
+    75% { color: #06b6d4; }
+    100% { color: #facc15; }
+  }
+
+  .animate-color-cycle {
+    animation: color-cycle 3s linear infinite;
+  }
 }

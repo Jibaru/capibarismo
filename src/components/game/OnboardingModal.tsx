@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,20 +6,18 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Gamepad2, AlertTriangle, Swords } from "lucide-react";
+import { Gamepad2, AlertTriangle, Swords, Save } from "lucide-react";
 
-export function OnboardingModal() {
-  const [open, setOpen] = useState(true);
+interface OnboardingModalProps {
+  open: boolean;
+  onStart: () => void;
+}
 
-  const handleStart = () => {
-    setOpen(false);
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      handleStart();
+export function OnboardingModal({ open, onStart }: OnboardingModalProps) {
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      onStart();
     }
-    setOpen(open);
   };
 
   return (
@@ -33,14 +30,34 @@ export function OnboardingModal() {
           <DialogTitle className="text-center text-base sm:text-xl md:text-2xl leading-tight sm:leading-normal text-white uppercase tracking-wide sm:tracking-widest" style={{ fontFamily: "'Press Start 2P', cursive" }}>
             <span className="text-accent drop-shadow-[2px_2px_0px_rgba(0,0,0,0.8)]">ARENA POLÍTICA</span>
             <br />
-            <span className="text-[10px] sm:text-sm mt-1 sm:mt-2 block opacity-90">REGLAS DEL TORNEO</span>
+            <span className="text-[10px] sm:text-sm mt-1 sm:mt-2 block opacity-90">TORNEO DE ELIMINACIÓN</span>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3 sm:space-y-6 py-3 sm:py-4 flex-1 overflow-auto">
           <p className="text-center text-white/90 font-sans text-sm sm:text-base md:text-lg leading-relaxed">
-            Te enfrentarás a duelos <span className="font-bold text-accent">1 vs 1</span> entre candidatos.
+            <span className="font-bold text-accent">36 candidatos</span> se enfrentan en un torneo de eliminación.
           </p>
+
+          {/* Tournament structure */}
+          <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/80 font-sans">
+            <div className="flex items-center gap-2 px-2">
+              <span className="text-accent font-bold text-[10px] sm:text-xs w-16 shrink-0">Ronda 1</span>
+              <span>18 duelos 1 vs 1</span>
+            </div>
+            <div className="flex items-center gap-2 px-2">
+              <span className="text-accent font-bold text-[10px] sm:text-xs w-16 shrink-0">Ronda 2</span>
+              <span>9 duelos 1 vs 1</span>
+            </div>
+            <div className="flex items-center gap-2 px-2">
+              <span className="text-accent font-bold text-[10px] sm:text-xs w-16 shrink-0">Semifinal</span>
+              <span>Elige 1 de cada grupo de 3</span>
+            </div>
+            <div className="flex items-center gap-2 px-2">
+              <span className="text-accent font-bold text-[10px] sm:text-xs w-16 shrink-0">Final</span>
+              <span>Elige a tu campeón</span>
+            </div>
+          </div>
 
           <div className="bg-red-950/40 border border-red-500/30 rounded-lg p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
             <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 shrink-0 mt-0.5" />
@@ -52,21 +69,22 @@ export function OnboardingModal() {
 
           <div className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 border border-purple-500/30 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-purple-100/90 font-sans leading-relaxed">
-              <span className="font-bold text-purple-300 block mb-1.5 sm:mb-2 text-xs sm:text-sm">💡 Vota con criterio, no por rechazo</span>
-              Tu voto es tu voz. <span className="font-semibold text-white">Infórmate, compara y elige</span> al candidato que mejor represente tus valores. El cambio empieza con decisiones conscientes.
+              <span className="font-bold text-purple-300 block mb-1.5 sm:mb-2 text-xs sm:text-sm">Vota con criterio, no por rechazo</span>
+              Tu voto es tu voz. <span className="font-semibold text-white">Infórmate, compara y elige</span> al candidato que mejor represente tus valores.
             </p>
           </div>
 
-          <div className="text-center bg-blue-950/30 border border-blue-500/20 rounded-lg p-2.5 sm:p-3">
-             <p className="text-[10px] sm:text-xs md:text-sm text-blue-100/80 font-sans">
-               Tus decisiones construirán tu <span className="text-blue-300 font-bold">Ranking Personal</span>.
-             </p>
+          <div className="text-center bg-blue-950/30 border border-blue-500/20 rounded-lg p-2.5 sm:p-3 flex items-center justify-center gap-2">
+            <Save className="w-3 h-3 sm:w-4 sm:h-4 text-blue-300 shrink-0" />
+            <p className="text-[10px] sm:text-xs md:text-sm text-blue-100/80 font-sans">
+              Tu progreso se guarda automáticamente.
+            </p>
           </div>
         </div>
 
         <DialogFooter className="sm:justify-center pt-2 sm:pt-0">
-          <Button 
-            onClick={handleStart}
+          <Button
+            onClick={onStart}
             className="w-full sm:w-auto min-w-[200px] bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 sm:py-6 text-base sm:text-lg border-2 border-white/20 hover:border-white/50 shadow-[0_4px_0_rgb(0,0,0,0.5)] hover:shadow-[0_2px_0_rgb(0,0,0,0.5)] hover:translate-y-[2px] transition-all uppercase tracking-wide sm:tracking-widest relative overflow-hidden group"
           >
             <span className="relative z-10 flex items-center justify-center gap-2" style={{ fontFamily: "'Press Start 2P', cursive", fontSize: 'clamp(0.6rem, 2.5vw, 0.8rem)' }}>
