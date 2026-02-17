@@ -32,7 +32,7 @@ export function PickFromThree({
     : undefined;
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center p-2 sm:p-4 md:p-8">
+    <div className="relative w-full min-h-full flex flex-col items-center justify-center p-2 sm:p-4 md:p-8">
       {/* Title */}
       <div className="text-center mb-4 sm:mb-6">
         <h2

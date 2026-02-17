@@ -169,7 +169,7 @@ export function JugarPage() {
                   onViewBracket={handleViewBracket}
                   onNewGame={resetTournament}
                 />
-                <div className="flex-1 relative overflow-hidden">
+                <div className="flex-1 relative overflow-y-auto">
                   <PickFromThree
                     candidateIds={currentMatch.candidates}
                     onSelect={(winnerId) => {

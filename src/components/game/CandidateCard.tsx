@@ -82,31 +82,37 @@ export function CandidateCard({ candidate, side, onSelect, disabled, voteState }
 
       {/* Name and button - compact on mobile */}
       <div className="text-center w-full flex-1 flex flex-col">
-        <h3 className="text-[10px] sm:text-base md:text-lg lg:text-xl font-bold text-white mb-0.5 sm:mb-2 px-0.5 sm:px-1 line-clamp-2 leading-tight">
-          {candidate.nombre}
-        </h3>
-        {candidate.ideologia && (
-          <p className="hidden sm:block text-white/80 text-xs md:text-sm mb-2 sm:mb-3 px-1 line-clamp-2">
-            {candidate.ideologia}
-          </p>
-        )}
+        <div className="min-h-[24px] sm:min-h-[2.75rem] flex items-start justify-center">
+          <h3 className="text-[10px] sm:text-base md:text-lg lg:text-xl font-bold text-white px-0.5 sm:px-1 line-clamp-2 leading-tight">
+            {candidate.nombre}
+          </h3>
+        </div>
+        <div className="hidden sm:block min-h-[1.75rem]">
+          {candidate.ideologia && (
+            <p className="text-white/80 text-xs md:text-sm mb-1 sm:mb-2 px-1 line-clamp-1">
+              {candidate.ideologia}
+            </p>
+          )}
+        </div>
 
         {/* Party Icon - debajo del nombre y subtítulo */}
-        {candidate.partyIcon && (
-          <div className="flex flex-col items-center gap-0.5 sm:gap-1 mb-1.5 sm:mb-4">
-            <img
-              src={safeSrc(candidate.partyIcon)}
-              alt={candidate.partido || 'Partido político'}
-              className="w-8 h-8 sm:w-16 sm:h-16 object-contain rounded-lg bg-white/10 p-1 sm:p-2 border border-white/20"
-              loading="lazy"
-            />
-            {candidate.partido && (
-              <p className="text-white/60 text-[7px] sm:text-[10px] text-center px-1 sm:px-2 line-clamp-1 sm:line-clamp-2">
-                {candidate.partido}
-              </p>
-            )}
-          </div>
-        )}
+        <div className="flex flex-col items-center gap-0.5 sm:gap-1 mb-1 sm:mb-2 min-h-[2.25rem] sm:min-h-[4.5rem]">
+          {candidate.partyIcon && (
+            <>
+              <img
+                src={safeSrc(candidate.partyIcon)}
+                alt={candidate.partido || 'Partido político'}
+                className="w-8 h-8 sm:w-16 sm:h-16 object-contain rounded-lg bg-white/10 p-1 sm:p-2 border border-white/20"
+                loading="lazy"
+              />
+              {candidate.partido && (
+                <p className="text-white/60 text-[7px] sm:text-[10px] text-center px-1 sm:px-2 line-clamp-1 sm:line-clamp-2">
+                  {candidate.partido}
+                </p>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Hide buttons during vote animation */}
         {!voteState && (
