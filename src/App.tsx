@@ -17,7 +17,6 @@ const About = lazy(() => import("./pages/About").then(module => ({ default: modu
 const Sources = lazy(() => import("./pages/Sources").then(module => ({ default: module.Sources })));
 const PoliticalCompassPage = lazy(() => import("./pages/PoliticalCompassPage"));
 const JugarPage = lazy(() => import("./pages/JugarPage").then(module => ({ default: module.JugarPage })));
-const RankingPage = lazy(() => import("./pages/RankingPage").then(module => ({ default: module.RankingPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,7 +97,6 @@ const App = () => {
               <Route element={<AppLayout />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/jugar" element={<JugarPage />} />
-                <Route path="/ranking" element={<RankingPage />} />
                 <Route path="/compare" element={<ComparePage />} />
                 <Route path="/compass" element={<PoliticalCompassPage />} />
                 <Route path="/candidate/:id" element={<CandidateProfile />} />
