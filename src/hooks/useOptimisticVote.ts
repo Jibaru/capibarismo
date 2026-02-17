@@ -1,3 +1,4 @@
+// LEGACY: Not used by tournament mode — review if still needed
 /**
  * Hook for handling vote submission with optimistic updates and rollback.
  * Manages vote count locally and syncs with the server.

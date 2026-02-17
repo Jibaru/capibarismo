@@ -1,6 +1,7 @@
+// LEGACY: Used by useGameAPI/RankingPage only — review if still needed
 /**
  * Smart pair generation service for the ranking game.
- * 
+ *
  * Implements a two-phase algorithm:
  * 1. Coverage Phase: Ensures all candidates appear at least once
  * 2. Adaptive Phase: Pairs candidates with similar ratings for better discrimination

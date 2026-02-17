@@ -8,7 +8,6 @@ describe('useGameUIStore', () => {
     const { result } = renderHook(() => useGameUIStore());
     act(() => {
       result.current.closeCandidateInfo();
-      result.current.closeCompletionModal();
       result.current.setReducedMotion(false);
       // Ensure keyboard help is off
       if (result.current.showKeyboardHelp) {
@@ -36,11 +35,6 @@ describe('useGameUIStore', () => {
     it('should have reducedMotion as false', () => {
       const { result } = renderHook(() => useGameUIStore());
       expect(result.current.reducedMotion).toBe(false);
-    });
-
-    it('should have completionModalOpen as false', () => {
-      const { result } = renderHook(() => useGameUIStore());
-      expect(result.current.completionModalOpen).toBe(false);
     });
   });
 
@@ -134,22 +128,18 @@ describe('useGameUIStore', () => {
     it('should toggle keyboard help multiple times', () => {
       const { result } = renderHook(() => useGameUIStore());
 
-      // Start from false (ensured by beforeEach)
       expect(result.current.showKeyboardHelp).toBe(false);
 
-      // Toggle to true
       act(() => {
         result.current.toggleKeyboardHelp();
       });
       expect(result.current.showKeyboardHelp).toBe(true);
 
-      // Toggle to false
       act(() => {
         result.current.toggleKeyboardHelp();
       });
       expect(result.current.showKeyboardHelp).toBe(false);
 
-      // Toggle to true again
       act(() => {
         result.current.toggleKeyboardHelp();
       });
@@ -197,44 +187,6 @@ describe('useGameUIStore', () => {
     });
   });
 
-  describe('Completion Modal', () => {
-    it('should open completion modal', () => {
-      const { result } = renderHook(() => useGameUIStore());
-
-      act(() => {
-        result.current.openCompletionModal();
-      });
-
-      expect(result.current.completionModalOpen).toBe(true);
-    });
-
-    it('should close completion modal', () => {
-      const { result } = renderHook(() => useGameUIStore());
-
-      act(() => {
-        result.current.openCompletionModal();
-      });
-      expect(result.current.completionModalOpen).toBe(true);
-
-      act(() => {
-        result.current.closeCompletionModal();
-      });
-      expect(result.current.completionModalOpen).toBe(false);
-    });
-
-    it('should handle opening completion modal multiple times', () => {
-      const { result } = renderHook(() => useGameUIStore());
-
-      act(() => {
-        result.current.openCompletionModal();
-        result.current.openCompletionModal();
-        result.current.openCompletionModal();
-      });
-
-      expect(result.current.completionModalOpen).toBe(true);
-    });
-  });
-
   describe('Multiple State Updates', () => {
     it('should handle multiple independent state changes', () => {
       const { result } = renderHook(() => useGameUIStore());
@@ -242,13 +194,11 @@ describe('useGameUIStore', () => {
       act(() => {
         result.current.openCandidateInfo('candidate-1');
         result.current.setReducedMotion(true);
-        result.current.openCompletionModal();
       });
 
       expect(result.current.candidateInfoOpen).toBe(true);
       expect(result.current.selectedCandidateId).toBe('candidate-1');
       expect(result.current.reducedMotion).toBe(true);
-      expect(result.current.completionModalOpen).toBe(true);
     });
 
     it('should maintain state across different actions', () => {
@@ -285,25 +235,6 @@ describe('useGameUIStore', () => {
 
       expect(result2.current.candidateInfoOpen).toBe(true);
       expect(result2.current.selectedCandidateId).toBe('candidate-123');
-    });
-
-    it('should update all hook instances when state changes', () => {
-      const { result: result1 } = renderHook(() => useGameUIStore());
-      const { result: result2 } = renderHook(() => useGameUIStore());
-
-      act(() => {
-        result1.current.openCompletionModal();
-      });
-
-      expect(result1.current.completionModalOpen).toBe(true);
-      expect(result2.current.completionModalOpen).toBe(true);
-
-      act(() => {
-        result2.current.closeCompletionModal();
-      });
-
-      expect(result1.current.completionModalOpen).toBe(false);
-      expect(result2.current.completionModalOpen).toBe(false);
     });
   });
 

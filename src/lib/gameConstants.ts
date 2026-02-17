@@ -1,3 +1,4 @@
+// LEGACY: Used by sessionService/RankingPage only — review if still needed
 /**
  * Game constants and configuration values.
  * Centralized location for all magic numbers used throughout the application.

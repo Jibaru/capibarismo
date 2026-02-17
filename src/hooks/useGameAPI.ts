@@ -1,3 +1,4 @@
+// LEGACY: Used by RankingPage only — review if still needed
 /**
  * TanStack Query hooks for the ranking game.
  * Provides data fetching and mutation hooks for game state management.

@@ -1,3 +1,4 @@
+// LEGACY: This page uses the old Elo/session system — review if still needed
 import { usePersonalRanking, getSessionId, resetSession } from '@/hooks/useGameAPI';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';

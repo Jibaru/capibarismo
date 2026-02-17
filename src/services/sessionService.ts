@@ -1,3 +1,4 @@
+// LEGACY: Used by useGameAPI/RankingPage only — review if still needed
 /**
  * Centralized session management service.
  * Handles session IDs, vote counts, seen pairs tracking, and local Elo ratings.
