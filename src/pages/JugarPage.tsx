@@ -20,8 +20,12 @@ import { useTrackJugarView } from '@/lib/posthog';
 
 // Auto-show overlay delay (ms) — brief bracket flash before match
 const AUTO_SHOW_DELAY = 1000;
+const AUTO_SHOW_DELAY_DESKTOP = 400;
 // Round transition auto-advance delay (ms)
 const TRANSITION_DELAY = 3000;
+const TRANSITION_DELAY_DESKTOP = 1500;
+// Desktop breakpoint (matches BracketTree's isMobile threshold)
+const DESKTOP_BREAKPOINT = 1500;
 
 export function JugarPage() {
   const {
@@ -42,6 +46,7 @@ export function JugarPage() {
   const autoTimerRef = useRef<ReturnType<typeof setTimeout>>();
   // Track if user just entered playing from preview (for overview zoom)
   const [showBracketOverview, setShowBracketOverview] = useState(false);
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= DESKTOP_BREAKPOINT;
 
   useTrackJugarView({ sessionId: tournament?.id ?? 'none' });
 
@@ -64,9 +69,11 @@ export function JugarPage() {
     if (userViewingBracket) return;
 
     // Longer delay when showing overview first (1.2s left + 1.2s right + 0.8s zoom = ~3.2s)
+    // On desktop the full bracket is already visible, so use shorter delays
+    const autoShowDelay = isDesktop ? AUTO_SHOW_DELAY_DESKTOP : AUTO_SHOW_DELAY;
     const delay = showBracketOverview
-      ? (reducedMotion ? 800 : 3500)
-      : (reducedMotion ? 300 : AUTO_SHOW_DELAY);
+      ? (reducedMotion ? 800 : isDesktop ? 1200 : 3500)
+      : (reducedMotion ? 300 : autoShowDelay);
 
     autoTimerRef.current = setTimeout(() => {
       setOverlayVisible(true);
@@ -275,7 +282,7 @@ export function JugarPage() {
             completedRoundIndex={completedRound}
             eliminatedCount={eliminated.length}
             advancingCount={advancing.length}
-            autoAdvanceDelay={reducedMotion ? 1500 : TRANSITION_DELAY}
+            autoAdvanceDelay={reducedMotion ? 1500 : isDesktop ? TRANSITION_DELAY_DESKTOP : TRANSITION_DELAY}
           />
           <CandidateInfoOverlay />
         </>
