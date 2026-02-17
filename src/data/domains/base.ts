@@ -48,7 +48,7 @@ export const base: Record<string, CandidateBase> = {
   },
   'alvaro-paz': {
     id: 'alvaro-paz',
-    nombre: 'Alvaro P. Freigeiro',
+    nombre: 'Alvaro PazdelaBarra',
     ideologia: null, // TODO: Completar manualmente
     partido: 'Fe en el Peru',
     partyIcon: '/iconos_partidos/FeenelPeru.jpg',
@@ -291,7 +291,7 @@ export const base: Record<string, CandidateBase> = {
   },
   'rafael-lopezaliaga': {
     id: 'rafael-lopezaliaga',
-    nombre: 'Rafael L. Aliaga ',
+    nombre: 'Rafael LopezAliaga',
     ideologia: null, // TODO: Completar manualmente
     partido: 'Renovacion Popular',
     partyIcon: '/iconos_partidos/RenovacionPopular.jpg',

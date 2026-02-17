@@ -113,7 +113,7 @@ export function HomePage() {
                   >
                     <span className="flex items-center gap-3">
                       <Gamepad2 size={18} className="shrink-0" />
-                      Jugar: Simulador de 2ª vuelta
+                      Juega el Torneo Electoral
                     </span>
                     <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                   </Link>

@@ -1,50 +1,54 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { VSScreen } from '@/components/game/VSScreen';
 import { GameHUD } from '@/components/game/GameHUD';
 import { CandidateInfoOverlay } from '@/components/game/CandidateInfoOverlay';
-import { CompletionModal } from '@/components/game/CompletionModal';
-import { OnboardingModal } from '@/components/game/OnboardingModal';
+import { BracketTreePage } from '@/components/tournament/BracketTreePage';
+import { PickFromThree } from '@/components/tournament/PickFromThree';
+import { PodiumScreen } from '@/components/tournament/PodiumScreen';
 import { useGameUIStore } from '@/store/useGameUIStore';
-import { useNextPair, getSessionId } from '@/hooks/useGameAPI';
-import { useOptimisticVote } from '@/hooks/useOptimisticVote';
-import { useGameCompletion } from '@/hooks/useGameCompletion';
-import { useGameKeyboard } from '@/hooks/useGameKeyboard';
-import { Button } from '@/components/ui/button';
-import { COMPLETION_GOAL } from '@/lib/gameConstants';
-import { useNavigate } from 'react-router-dom';
-import { sessionService } from '@/services/sessionService';
+import { useTournamentStore } from '@/store/useTournamentStore';
+import {
+  getCurrentMatch,
+  getMatchProgress,
+  getEliminatedInRound,
+  getAdvancingFromRound,
+} from '@/services/tournamentService';
+import { ROUND_CONFIG } from '@/lib/tournamentConstants';
+import { findCandidateBase } from '@/data';
 import { useTrackJugarView } from '@/lib/posthog';
 
+// Auto-show overlay delay (ms) — brief bracket flash before match
+const AUTO_SHOW_DELAY = 1000;
+const AUTO_SHOW_DELAY_DESKTOP = 400;
+// Round transition auto-advance delay (ms)
+const TRANSITION_DELAY = 3000;
+const TRANSITION_DELAY_DESKTOP = 1500;
+// Desktop breakpoint (matches BracketTree's isMobile threshold)
+const DESKTOP_BREAKPOINT = 1500;
+
 export function JugarPage() {
-  const sessionId = getSessionId();
-
   const {
-    closeCandidateInfo,
-    setReducedMotion,
-    completionModalOpen,
-  } = useGameUIStore();
+    state: tournament,
+    startNewTournament,
+    submitVote,
+    advanceFromRoundTransition,
+    goToBracketPreview,
+    startPlaying,
+    resetTournament,
+  } = useTournamentStore();
 
-  const {
-    data: pair,
-    isLoading: pairLoading,
-    isFetching: pairFetching,
-    error: pairError
-  } = useNextPair();
+  const { setReducedMotion, reducedMotion } = useGameUIStore();
 
-  const { voteCount, handleVote, isSubmitting } = useOptimisticVote(sessionId);
+  // Overlay state for match screen
+  const [overlayVisible, setOverlayVisible] = useState(false);
+  const [userViewingBracket, setUserViewingBracket] = useState(false);
+  const autoTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  // Track if user just entered playing from preview (for overview zoom)
+  const [showBracketOverview, setShowBracketOverview] = useState(false);
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= DESKTOP_BREAKPOINT;
 
-  useTrackJugarView({ sessionId });
-
-  // Handle game completion modal (now handles both tiers)
-  useGameCompletion(voteCount);
-
-  // Handle keyboard controls - disable when modal is open
-  useGameKeyboard({
-    onVoteA: () => pair && !completionModalOpen && handleVote(pair, 'A'),
-    onVoteB: () => pair && !completionModalOpen && handleVote(pair, 'B'),
-    onEscape: closeCandidateInfo,
-    enabled: !!pair && !completionModalOpen,
-  });
+  useTrackJugarView({ sessionId: tournament?.id ?? 'none' });
 
   // Check for prefers-reduced-motion
   useEffect(() => {
@@ -56,62 +60,250 @@ export function JugarPage() {
     return () => mediaQuery.removeEventListener('change', handler);
   }, [setReducedMotion]);
 
-  // Initial load spinner
-  if (pairLoading) {
-    return (
-      <div className="min-h-screen fighting-game-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-primary/30 border-t-primary mx-auto mb-4"></div>
-          <p className="text-white text-base sm:text-lg">Cargando...</p>
-        </div>
-      </div>
-    );
+  const currentMatch = tournament ? getCurrentMatch(tournament) : null;
+  const phase = tournament?.phase;
+
+  // Auto-show match overlay after brief bracket flash
+  useEffect(() => {
+    if (phase !== 'playing-pick-three' && phase !== 'playing-1v1') return;
+    if (userViewingBracket) return;
+
+    // Longer delay when showing overview first (1.2s left + 1.2s right + 0.8s zoom = ~3.2s)
+    // On desktop the full bracket is already visible, so use shorter delays
+    const autoShowDelay = isDesktop ? AUTO_SHOW_DELAY_DESKTOP : AUTO_SHOW_DELAY;
+    const delay = showBracketOverview
+      ? (reducedMotion ? 800 : isDesktop ? 1200 : 3500)
+      : (reducedMotion ? 300 : autoShowDelay);
+
+    autoTimerRef.current = setTimeout(() => {
+      setOverlayVisible(true);
+      setShowBracketOverview(false);
+    }, delay);
+
+    return () => {
+      if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
+    };
+  }, [phase, tournament?.currentRound, tournament?.currentMatchIndex, userViewingBracket, reducedMotion, showBracketOverview]);
+
+  // User manually views bracket
+  const handleViewBracket = useCallback(() => {
+    setOverlayVisible(false);
+    setUserViewingBracket(true);
+    if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
+  }, []);
+
+  // User returns from bracket view
+  const handleContinueFromBracket = useCallback(() => {
+    setUserViewingBracket(false);
+    setOverlayVisible(true);
+  }, []);
+
+  // No tournament → create one and go straight to bracket preview
+  if (!tournament) {
+    startNewTournament();
+    goToBracketPreview();
+    return null;
   }
 
-  if (pairError || !pair) {
-    return (
-      <div className="min-h-screen fighting-game-bg flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Error</h2>
-          <p className="text-sm sm:text-base text-white/80 mb-4">
-            {pairError
-              ? `Error al cargar el juego: ${pairError instanceof Error ? pairError.message : 'Error desconocido'}`
-              : 'No hay pares disponibles. Por favor intenta de nuevo.'}
-          </p>
-          {pairError && (
-            <p className="text-white/60 text-xs sm:text-sm mb-4">
-              Session ID: {sessionId}
-            </p>
-          )}
-          <Button onClick={() => window.location.reload()}>
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    );
+  // Legacy: skip onboarding phase if somehow still in it
+  if (tournament.phase === 'onboarding') {
+    goToBracketPreview();
+    return null;
   }
 
-  // Show loading while submitting vote OR fetching next pair (refetch)
-  const isLoadingNext = isSubmitting || pairFetching;
+  const progress = getMatchProgress(tournament);
 
-  return (
-    <div className="min-h-screen fighting-game-bg flex flex-col">
-      {/* HUD - now calculates its own progress based on comparisons */}
-      <GameHUD comparisons={voteCount} />
+  // Phase-based rendering
+  switch (tournament.phase) {
+    case 'bracket-preview':
+      return (
+        <>
+          <BracketTreePage
+            bracket={tournament.bracket}
+            currentRound={tournament.currentRound}
+            currentMatchIndex={tournament.currentMatchIndex}
+            onAction={() => { setShowBracketOverview(true); startPlaying(); }}
+            mode="preview"
+          />
+          <CandidateInfoOverlay />
+        </>
+      );
 
-      {/* Main game area */}
-      <div className="flex-1 relative overflow-hidden">
-        <VSScreen
-          pair={pair}
-          onVote={(winner) => !completionModalOpen && handleVote(pair, winner)}
-          isSubmitting={isLoadingNext || completionModalOpen}
-        />
-      </div>
+    case 'playing-pick-three': {
+      if (!currentMatch) return null;
 
-      {/* Overlays */}
-      <CandidateInfoOverlay />
-      <CompletionModal />
-      <OnboardingModal />
-    </div>
-  );
+      const roundConfig = ROUND_CONFIG[tournament.currentRound];
+
+      return (
+        <>
+          {/* Bracket is the main view */}
+          <BracketTreePage
+            bracket={tournament.bracket}
+            currentRound={tournament.currentRound}
+            currentMatchIndex={tournament.currentMatchIndex}
+            onAction={handleContinueFromBracket}
+            mode="viewing"
+            showOverviewFirst={showBracketOverview}
+          />
+
+          {/* Pick-from-three as auto-showing overlay */}
+          <AnimatePresence>
+            {overlayVisible && (
+              <motion.div
+                initial={reducedMotion ? {} : { scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={reducedMotion ? {} : { scale: 0.9, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                className="fixed inset-0 z-40 fighting-game-bg flex flex-col"
+              >
+                <GameHUD
+                  roundLabel={progress.roundLabel}
+                  arcadeRoundLabel={progress.arcadeRoundLabel}
+                  matchLabel={progress.matchLabel}
+                  overallProgress={progress.overallPercent}
+                  onViewBracket={handleViewBracket}
+                  onNewGame={resetTournament}
+                />
+                <div className="flex-1 relative overflow-y-auto">
+                  <PickFromThree
+                    candidateIds={currentMatch.candidates}
+                    onSelect={(winnerId) => {
+                      submitVote(winnerId);
+                      setOverlayVisible(false);
+                      setUserViewingBracket(false);
+                    }}
+                    groupIndex={tournament.currentMatchIndex}
+                    totalGroups={roundConfig?.matchCount}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <CandidateInfoOverlay />
+        </>
+      );
+    }
+
+    case 'playing-1v1': {
+      if (!currentMatch) return null;
+
+      const candidateA = findCandidateBase(currentMatch.candidates[0]);
+      const candidateB = findCandidateBase(currentMatch.candidates[1]);
+
+      if (!candidateA || !candidateB) return null;
+
+      const pair = {
+        pairId: currentMatch.id,
+        a: {
+          id: candidateA.id,
+          nombre: candidateA.nombre,
+          ideologia: candidateA.ideologia ?? undefined,
+          fullBody: candidateA.fullBody,
+          headshot: candidateA.headshot,
+          partyIcon: candidateA.partyIcon,
+          partido: candidateA.partido,
+        },
+        b: {
+          id: candidateB.id,
+          nombre: candidateB.nombre,
+          ideologia: candidateB.ideologia ?? undefined,
+          fullBody: candidateB.fullBody,
+          headshot: candidateB.headshot,
+          partyIcon: candidateB.partyIcon,
+          partido: candidateB.partido,
+        },
+      };
+
+      return (
+        <>
+          {/* Bracket is the main view */}
+          <BracketTreePage
+            bracket={tournament.bracket}
+            currentRound={tournament.currentRound}
+            currentMatchIndex={tournament.currentMatchIndex}
+            onAction={handleContinueFromBracket}
+            mode="viewing"
+            showOverviewFirst={showBracketOverview}
+          />
+
+          {/* VS Screen as auto-showing overlay */}
+          <AnimatePresence>
+            {overlayVisible && (
+              <motion.div
+                initial={reducedMotion ? {} : { scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={reducedMotion ? {} : { scale: 0.9, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                className="fixed inset-0 z-40 fighting-game-bg flex flex-col"
+              >
+                <GameHUD
+                  roundLabel={progress.roundLabel}
+                  arcadeRoundLabel={progress.arcadeRoundLabel}
+                  matchLabel={progress.matchLabel}
+                  overallProgress={progress.overallPercent}
+                  onViewBracket={handleViewBracket}
+                  onNewGame={resetTournament}
+                />
+                <div className="flex-1 relative overflow-hidden">
+                  <VSScreen
+                    pair={pair}
+                    onVote={(winner) => {
+                      const winnerId = winner === 'A' ? candidateA.id : candidateB.id;
+                      submitVote(winnerId);
+                      setOverlayVisible(false);
+                      setUserViewingBracket(false);
+                    }}
+                    roundLabel={progress.arcadeRoundLabel}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <CandidateInfoOverlay />
+        </>
+      );
+    }
+
+    case 'round-transition': {
+      const completedRound = tournament.currentRound;
+      const eliminated = getEliminatedInRound(tournament, completedRound);
+      const advancing = getAdvancingFromRound(tournament, completedRound);
+
+      return (
+        <>
+          <BracketTreePage
+            bracket={tournament.bracket}
+            currentRound={tournament.currentRound}
+            currentMatchIndex={tournament.currentMatchIndex}
+            onAction={advanceFromRoundTransition}
+            mode="transition"
+            completedRoundIndex={completedRound}
+            eliminatedCount={eliminated.length}
+            advancingCount={advancing.length}
+            autoAdvanceDelay={reducedMotion ? 1500 : isDesktop ? TRANSITION_DELAY_DESKTOP : TRANSITION_DELAY}
+          />
+          <CandidateInfoOverlay />
+        </>
+      );
+    }
+
+    case 'podium': {
+      if (!tournament.podium) return null;
+
+      return (
+        <>
+          <PodiumScreen
+            podium={tournament.podium}
+            onPlayAgain={resetTournament}
+          />
+          <CandidateInfoOverlay />
+        </>
+      );
+    }
+
+    default:
+      return null;
+  }
 }

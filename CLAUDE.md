@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Capibarismo** is a civic engagement platform for Peru's presidential elections that gamifies candidate comparison using a 90s fighting game aesthetic. Users vote in 1v1 candidate matchups to build personal rankings and explore detailed candidate information.
+**Capibarismo** is a civic engagement platform for Peru's presidential elections that gamifies candidate comparison using a 90s fighting game aesthetic. The core experience is a **single-elimination tournament** where 36 candidates are narrowed down to a personal top 3 through pick-one-from-three and 1v1 matchups. Users also explore detailed candidate information, compare candidates side-by-side, and view a political compass.
 
 **Core Philosophy: "Game Feel"**
 - **The Punch** (<100ms): Voting must feel instant and visceral (requires optimistic UI updates)
@@ -56,10 +56,11 @@ tsx scripts/validate-data.ts # Validate candidate data structure
 ### Frontend Stack
 - **React 18** + **TypeScript** + **Vite** (with SWC for fast refresh)
 - **Routing**: React Router with lazy-loaded pages
+- **Animations**: Framer Motion for overlays, transitions, and bracket zoom
 - **State Management**:
-  - Zustand for UI state (`useGameUIStore`, `useCompareStore`)
-  - TanStack Query for API calls (with aggressive caching)
-  - localStorage/sessionStorage for session persistence
+  - Zustand for tournament state (`useTournamentStore`) and UI state (`useGameUIStore`, `useCompareStore`)
+  - TanStack Query for API calls (ranking page, with aggressive caching)
+  - localStorage persistence via Zustand `persist` middleware (tournament state)
 - **Styling**: Tailwind CSS + shadcn/ui components
 - **Analytics**: PostHog (optional, graceful degradation if not configured)
 
@@ -75,78 +76,63 @@ Located in `/api/` directory:
 /src/
   /pages/              # Route-level components (lazy-loaded)
   /components/         # Feature-organized UI components
-    /game/             # Core voting experience (VSScreen, CandidateCard, etc.)
+    /game/             # Core game UI (VSScreen, GameHUD, OnboardingModal, CandidateInfoOverlay)
+    /tournament/       # Tournament bracket system (BracketTreePage, BracketTree, PickFromThree, PodiumScreen)
     /compare/          # Side-by-side comparison tool
     /political-compass/ # 2D political visualization
     /ui/               # shadcn/ui design system primitives
-  /hooks/              # Custom React hooks (game logic, API integration)
-  /store/              # Zustand state stores
-  /services/           # Business logic (session management, pair generation)
+  /hooks/              # Custom React hooks (game API, legacy Elo hooks)
+  /store/              # Zustand state stores (tournament, game UI, compare)
+  /services/           # Business logic (tournament logic, session management)
   /data/               # Candidate data and type definitions
     /domains/          # Structured candidate information (education, income, etc.)
-  /lib/                # Utilities, constants, helpers
+  /lib/                # Utilities, constants, types (tournamentTypes, tournamentConstants)
 /scripts/              # Build and validation scripts
 /load-tests/           # k6 performance test scenarios
 ```
 
 ## Critical Architectural Patterns
 
-### 1. Optimistic UI Updates
-**Location**: `src/hooks/useOptimisticVote.ts`
+### 1. Tournament State Machine (Primary Game Flow)
+**Location**: `src/services/tournamentService.ts`, `src/store/useTournamentStore.ts`, `src/lib/tournamentTypes.ts`
 
-Votes must feel instant (<100ms "The Punch"). The hook:
-1. Immediately increments local vote count
-2. Fires async API mutation (doesn't wait)
-3. Rolls back on error with user notification
+The core game is a single-elimination tournament with 36 candidates and 19 total decisions:
 
-When working with vote functionality, never introduce blocking await calls that delay UI feedback.
+**Tournament format:**
+| Round | Type | Matches | Description |
+|-------|------|---------|-------------|
+| R0 | pick-one-from-three | 12 | 36 → 12 candidates |
+| R1 | pick-one-from-three | 4 | 12 → 4 candidates |
+| R2 | 1v1 semifinal | 2 | 4 → 2 candidates |
+| R3 | 1v1 final | 1 | 2 → 1 winner |
 
-### 2. Session Management (Factory Pattern)
-**Location**: `src/services/sessionService.ts`
-
-Uses dependency injection for testability:
-```typescript
-createSessionService(localStorage, sessionStorage)
+**Phase state machine:**
+```
+null → onboarding → bracket-preview → playing-pick-three/playing-1v1
+  → round-transition → (next playing phase) → ... → podium
 ```
 
-Manages:
-- Session ID (nanoid-based, persisted across page loads)
-- Vote count tracking
-- Seen pairs (prevents duplicate matchups)
-- Local Elo ratings (for smart pair selection)
-- Candidate appearance tracking
+**Key design decisions:**
+- `tournamentService.ts` contains **pure functions only** (no side effects). State flows in, new state flows out.
+- `useTournamentStore` wraps the service with Zustand `persist` middleware (localStorage key: `tournament-state-v2`)
+- Winner propagation: R0→R1 uses groups of 3, R1→R2 uses groups of 2, R2→R3 takes both winners
+- Podium 3rd place: first semifinal loser
 
-When testing, inject mock storage adapters rather than mocking individual functions.
+When modifying tournament logic, keep functions pure and test with plain state objects.
 
-### 3. Smart Pair Generation Algorithm
-**Location**: `src/services/pairGenerationService.ts`
+### 2. Bracket + Overlay UI Pattern
+**Location**: `src/pages/JugarPage.tsx`, `src/components/tournament/`
 
-Four-tier fallback strategy:
-1. **Coverage Phase**: Prioritize unseen candidates (fair exposure)
-2. **Adaptive Phase**: Match candidates with similar Elo ratings (better discrimination)
-3. **Random Pairing**: Exploratory matchups
-4. **Fallback**: Guaranteed pair generation, resets seen pairs if exhausted
+During playing phases, the **bracket tree is always the base layer** and the match UI (PickFromThree or VSScreen) appears as a **full-screen animated overlay** (z-40):
 
-When modifying, preserve the fallback chain to prevent infinite loops.
+1. Phase changes → bracket is visible immediately
+2. After `AUTO_SHOW_DELAY` (1s), match overlay slides in with spring animation
+3. User votes → overlay slides out, bracket briefly visible with updated state
+4. "Ver Bracket" button hides overlay so user can inspect the bracket manually
 
-### 4. Dual Storage Adapters
-**Location**: `api/storage.ts`
+This pattern keeps the bracket as persistent context while the match UI handles interaction.
 
-- **Development**: In-memory Map (fast, zero config, resets on restart)
-- **Production**: Vercel Blob Storage (durable, one JSON file per vote)
-
-Environment variables:
-- `BLOB_READ_WRITE_TOKEN` (required for production)
-- `VITE_USE_API` (toggle mock data in frontend)
-
-### 5. Normalized Pair IDs
-Used throughout codebase to prevent duplicate directional pairs:
-```typescript
-createPairId(aId, bId) → [aId, bId].sort().join('-')
-```
-This ensures "candidate-A vs candidate-B" = "candidate-B vs candidate-A"
-
-### 6. Component Composition
+### 3. Component Composition
 Components follow shadcn/ui patterns:
 ```tsx
 <Card>
@@ -158,6 +144,31 @@ Components follow shadcn/ui patterns:
 ```
 
 Prefer composition over prop drilling. Use Zustand stores for cross-component state rather than passing callbacks through multiple layers.
+
+### 4. Dual Storage Adapters (API/Ranking)
+**Location**: `api/storage.ts`
+
+- **Development**: In-memory Map (fast, zero config, resets on restart)
+- **Production**: Vercel Blob Storage (durable, one JSON file per vote)
+
+Environment variables:
+- `BLOB_READ_WRITE_TOKEN` (required for production)
+- `VITE_USE_API` (toggle mock data in frontend)
+
+### 5. Legacy Systems (Still in Codebase)
+
+These files still exist and are used by `RankingPage` (`/ranking`) but are **not used by the tournament flow** in JugarPage:
+
+| File | Purpose | Used by |
+|------|---------|---------|
+| `src/hooks/useOptimisticVote.ts` | Optimistic vote submission with rollback | Legacy (tests only) |
+| `src/hooks/useGameAPI.ts` | Pair fetching, ranking queries | RankingPage |
+| `src/services/pairGenerationService.ts` | Elo-based smart pairing | useGameAPI |
+| `src/services/sessionService.ts` | Session/vote/Elo persistence | RankingPage, useGameAPI |
+| `src/lib/gameConstants.ts` | ELO_K, INITIAL_ELO, vote goals | pairGenerationService, sessionService |
+| `src/components/game/CompletionModal.tsx` | Vote milestone modal | Not rendered in tournament |
+
+Do not remove these files — `RankingPage` depends on the session/API infrastructure.
 
 ## Development Workflows
 
@@ -171,34 +182,46 @@ Prefer composition over prop drilling. Use Zustand stores for cross-component st
 4. Run `tsx scripts/validate-data.ts` to ensure data integrity
 5. Political compass positions in `/src/data/domains/compass.ts`
 
-### Modifying Game Logic
+### Modifying Tournament Logic
 
-**Critical files**:
-- `src/hooks/useGameAPI.ts` - Pair fetching
-- `src/hooks/useOptimisticVote.ts` - Vote submission
-- `src/services/pairGenerationService.ts` - Smart pairing algorithm
-- `src/lib/gameConstants.ts` - Tunable parameters
+**Critical files (tournament)**:
+- `src/services/tournamentService.ts` - Pure tournament logic (create, advance, progress)
+- `src/store/useTournamentStore.ts` - Zustand store with persist middleware
+- `src/lib/tournamentTypes.ts` - TypeScript interfaces (TournamentState, TournamentPhase, etc.)
+- `src/lib/tournamentConstants.ts` - Round configuration and constants
+- `src/pages/JugarPage.tsx` - Phase-based rendering orchestrator
 
-**Important constants** (in `gameConstants.ts`):
+**Important constants** (in `tournamentConstants.ts`):
 ```typescript
-PRELIMINARY_GOAL = 15    // First completion tier
-RECOMMENDED_GOAL = 30    // Second completion tier
-ELO_K = 32              // Rating change sensitivity
-INITIAL_ELO = 1200      // Starting rating
+TOTAL_CANDIDATES = 36       // Required candidate count
+TOTAL_DECISIONS = 19        // Total user votes per tournament
+TOTAL_MATCHES = 19          // Total matches across all rounds
+TOURNAMENT_STORAGE_KEY = 'tournament-state-v2'  // localStorage key
+ROUND_CONFIG = [...]        // 4-element array defining each round
 ```
+
+**Critical files (legacy, used by RankingPage)**:
+- `src/hooks/useGameAPI.ts` - Pair fetching, ranking queries
+- `src/services/sessionService.ts` - Session/Elo persistence
+- `src/lib/gameConstants.ts` - Elo and goal constants
 
 ### Working with State
 
-**UI State** (Zustand):
-- `useGameUIStore` - Modal visibility, preferences, completion state
-- `useCompareStore` - Comparison tool candidate selection
+**Tournament State** (Zustand + persist):
+- `useTournamentStore` - Full tournament state machine (bracket, phase, matches, podium)
+- Persisted to localStorage under key `tournament-state-v2`
+- Actions: `startNewTournament`, `submitVote`, `advanceFromRoundTransition`, `goToBracketPreview`, `startPlaying`, `resetTournament`
 
-**Persisted State** (via sessionService):
+**UI State** (Zustand, not persisted):
+- `useGameUIStore` - CandidateInfoOverlay visibility, selected candidate, `reducedMotion` preference
+- `useCompareStore` - Comparison tool candidate selection (left/right slots)
+
+**Legacy Persisted State** (via sessionService, used by RankingPage):
 - Vote count, seen pairs, local Elo ratings (localStorage)
-- Completion tier shown (sessionStorage)
+- Session ID (nanoid-based)
 
 **Server State** (TanStack Query):
-- Candidate pairs, ranking data
+- Ranking data (used by RankingPage)
 - Aggressive caching (5min stale time)
 
 ### Testing Strategy
@@ -217,6 +240,24 @@ const mockStorage = createMockStorage();
 const service = createSessionService(mockStorage, mockStorage);
 ```
 
+### Tournament Components Reference
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `BracketTreePage` | `src/components/tournament/` | Full bracket view with mode-based rendering (preview/viewing/transition) |
+| `BracketTree` | `src/components/tournament/` | SVG-based bracket visualization with mobile zoom animation |
+| `PickFromThree` | `src/components/tournament/` | Pick-one-from-three UI for R0 and R1 |
+| `PodiumScreen` | `src/components/tournament/` | Final results with confetti, share/screenshot functionality |
+| `RoundTransition` | `src/components/tournament/` | Standalone round transition overlay (available but BracketTreePage handles this) |
+| `BracketMatchBox` | `src/components/tournament/` | Compact match card for list-style bracket view |
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `VSScreen` | `src/components/game/` | 1v1 fighting game screen (used in R2/R3), accepts `roundLabel` prop |
+| `GameHUD` | `src/components/game/` | Top bar with round label, match progress, bracket/new-game buttons |
+| `OnboardingModal` | `src/components/game/` | Tournament intro modal (describes the 4-round format) |
+| `CandidateInfoOverlay` | `src/components/game/` | Slide-in candidate detail panel (available in all phases) |
+
 ### Performance Considerations
 
 **Code Splitting**:
@@ -227,7 +268,6 @@ const service = createSessionService(mockStorage, mockStorage);
 **Image Optimization**:
 - Use WebP format for all candidate images
 - Lazy load images (built-in browser loading="lazy")
-- Preload images for next pair while current pair is displayed
 
 **Bundle Analysis**:
 ```bash
