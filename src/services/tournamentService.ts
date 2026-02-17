@@ -3,6 +3,12 @@
  *
  * No side effects. All functions take state in, return new state out.
  * Storage/persistence is handled by the Zustand store layer.
+ *
+ * New format (v2):
+ *   R0: 12x pick-1-from-3  (36 → 12)
+ *   R1:  4x pick-1-from-3  (12 →  4)
+ *   R2:  2x 1v1 semifinals  ( 4 →  2)
+ *   R3:  1x 1v1 final       ( 2 →  1)
  */
 
 import { nanoid } from 'nanoid';
@@ -13,7 +19,6 @@ import type {
   TournamentRound,
   TournamentMatch,
   MatchProgress,
-  PodiumResult,
 } from '@/lib/tournamentTypes';
 import { ROUND_CONFIG, TOTAL_CANDIDATES } from '@/lib/tournamentConstants';
 
@@ -42,10 +47,6 @@ export function createTournamentState(candidates: CandidateBase[]): TournamentSt
 
 /**
  * Advance the tournament by recording a vote. Returns a new TournamentState.
- *
- * For 1v1 matches: winnerId is the chosen candidate.
- * For pick-from-three: winnerId is the chosen candidate.
- * For final-runner-up: winnerId is the runner-up pick.
  */
 export function advanceTournament(
   state: TournamentState,
@@ -88,15 +89,6 @@ export function getMatchProgress(state: TournamentState): MatchProgress {
     }
   }
 
-  // For the final round, we have 1 match for champion + implicit runner-up pick
-  // Add 1 for the runner-up if in that phase or podium
-  if (state.phase === 'final-runner-up' || state.phase === 'podium') {
-    completedTotal++;
-    totalMatches++;
-  } else if (state.bracket.rounds[3]?.matches[0]) {
-    totalMatches++; // account for runner-up pick in total
-  }
-
   const overallPercent = totalMatches > 0
     ? Math.round((completedTotal / totalMatches) * 100)
     : 0;
@@ -108,9 +100,8 @@ export function getMatchProgress(state: TournamentState): MatchProgress {
     current: completedTotal,
     total: totalMatches,
     roundLabel: roundConfig?.label ?? 'Final',
-    matchLabel: state.phase === 'final-runner-up'
-      ? 'Elige al subcampeón'
-      : `Encuentro ${matchIndex + 1} de ${matchCount}`,
+    arcadeRoundLabel: roundConfig?.arcadeLabel ?? 'FINAL',
+    matchLabel: `Grupo ${matchIndex + 1} de ${matchCount}`,
     overallPercent,
   };
 }
@@ -150,54 +141,46 @@ function generateBracket(candidates: CandidateBase[]): TournamentBracket {
   const shuffled = shuffleArray(candidates);
   const ids = shuffled.map((c) => c.id);
 
-  // Round 0: 18 x 1v1 matches (pair sequentially)
+  // Round 0: 12 x pick-one-from-three (group into 12 groups of 3)
   const round0Matches: TournamentMatch[] = [];
-  for (let i = 0; i < ids.length; i += 2) {
+  for (let i = 0; i < 12; i++) {
     round0Matches.push({
-      id: `r0-m${i / 2}`,
-      candidates: [ids[i], ids[i + 1]],
+      id: `r0-m${i}`,
+      candidates: [ids[i * 3], ids[i * 3 + 1], ids[i * 3 + 2]],
       winner: null,
       eliminated: [],
     });
   }
 
-  // Round 1: 9 x 1v1 matches (winners of R0 paired: [m0,m1]→m0, [m2,m3]→m1, etc.)
-  const round1Matches: TournamentMatch[] = [];
-  for (let i = 0; i < 9; i++) {
-    round1Matches.push({
-      id: `r1-m${i}`,
-      candidates: [], // filled when R0 winners propagate
-      winner: null,
-      eliminated: [],
-    });
-  }
+  // Round 1: 4 x pick-one-from-three (filled by R0 winners: 3 per group)
+  const round1Matches: TournamentMatch[] = Array.from({ length: 4 }, (_, i) => ({
+    id: `r1-m${i}`,
+    candidates: [],
+    winner: null,
+    eliminated: [],
+  }));
 
-  // Round 2: 3 x pick-one-from-three (groups of 3 from R1 winners)
-  const round2Matches: TournamentMatch[] = [];
-  for (let i = 0; i < 3; i++) {
-    round2Matches.push({
-      id: `r2-m${i}`,
-      candidates: [], // filled when R1 winners propagate
-      winner: null,
-      eliminated: [],
-    });
-  }
+  // Round 2: 2 x 1v1 semifinals (filled by R1 winners: 2 per match)
+  const round2Matches: TournamentMatch[] = Array.from({ length: 2 }, (_, i) => ({
+    id: `r2-m${i}`,
+    candidates: [],
+    winner: null,
+    eliminated: [],
+  }));
 
-  // Round 3: 1 x final (3 candidates from R2 winners)
-  const round3Matches: TournamentMatch[] = [
-    {
-      id: 'r3-m0',
-      candidates: [], // filled when R2 winners propagate
-      winner: null,
-      eliminated: [],
-    },
-  ];
+  // Round 3: 1 x 1v1 final (filled by R2 winners)
+  const round3Matches: TournamentMatch[] = [{
+    id: 'r3-m0',
+    candidates: [],
+    winner: null,
+    eliminated: [],
+  }];
 
   const rounds: TournamentRound[] = [
-    { roundIndex: 0, type: '1v1', matches: round0Matches, completed: false },
-    { roundIndex: 1, type: '1v1', matches: round1Matches, completed: false },
-    { roundIndex: 2, type: 'pick-one-from-three', matches: round2Matches, completed: false },
-    { roundIndex: 3, type: 'final', matches: round3Matches, completed: false },
+    { roundIndex: 0, type: 'pick-one-from-three', matches: round0Matches, completed: false },
+    { roundIndex: 1, type: 'pick-one-from-three', matches: round1Matches, completed: false },
+    { roundIndex: 2, type: '1v1',                 matches: round2Matches, completed: false },
+    { roundIndex: 3, type: '1v1',                 matches: round3Matches, completed: false },
   ];
 
   return { rounds };
@@ -209,33 +192,28 @@ function generateBracket(candidates: CandidateBase[]): TournamentBracket {
 
 /**
  * After a match is won, propagate the winner into the correct slot in the next round.
+ *
+ * R0→R1: every 3 R0 matches feed 1 R1 match (pick-from-3)
+ * R1→R2: every 2 R1 matches feed 1 R2 match (1v1)
+ * R2→R3: both R2 winners go into R3 final (1v1)
  */
 function propagateWinner(state: TournamentState, winnerId: string): void {
   const roundIndex = state.currentRound;
   const matchIndex = state.currentMatchIndex;
 
   if (roundIndex === 0) {
-    // R0 → R1: Every 2 R0 matches feed 1 R1 match
-    // R0 matches [0,1] → R1 match 0
-    // R0 matches [2,3] → R1 match 1
-    // etc.
-    const r1MatchIndex = Math.floor(matchIndex / 2);
-    const r1Match = state.bracket.rounds[1].matches[r1MatchIndex];
-    r1Match.candidates.push(winnerId);
+    // R0 → R1: groups of 3
+    const r1MatchIndex = Math.floor(matchIndex / 3);
+    state.bracket.rounds[1].matches[r1MatchIndex].candidates.push(winnerId);
   } else if (roundIndex === 1) {
-    // R1 → R2: Every 3 R1 matches feed 1 R2 match
-    // R1 matches [0,1,2] → R2 match 0
-    // R1 matches [3,4,5] → R2 match 1
-    // R1 matches [6,7,8] → R2 match 2
-    const r2MatchIndex = Math.floor(matchIndex / 3);
-    const r2Match = state.bracket.rounds[2].matches[r2MatchIndex];
-    r2Match.candidates.push(winnerId);
+    // R1 → R2: groups of 2
+    const r2MatchIndex = Math.floor(matchIndex / 2);
+    state.bracket.rounds[2].matches[r2MatchIndex].candidates.push(winnerId);
   } else if (roundIndex === 2) {
-    // R2 → R3: All 3 R2 winners go into the single R3 final match
-    const r3Match = state.bracket.rounds[3].matches[0];
-    r3Match.candidates.push(winnerId);
+    // R2 → R3: both semifinal winners into final
+    state.bracket.rounds[3].matches[0].candidates.push(winnerId);
   }
-  // roundIndex === 3 (final): no propagation needed, handled by podium logic
+  // roundIndex === 3 (final): no propagation, handled by advanceToNext
 }
 
 // =============================================================================
@@ -246,10 +224,21 @@ function advanceToNext(state: TournamentState): TournamentState {
   const round = state.bracket.rounds[state.currentRound];
   const isLastMatchInRound = state.currentMatchIndex >= round.matches.length - 1;
 
-  if (state.currentRound === 3) {
-    // Final round: champion just picked → go to runner-up selection
+  if (state.currentRound === 3 && isLastMatchInRound) {
+    // Final round completed → build podium
     round.completed = true;
-    return handleFinalRound(state);
+    const finalMatch = round.matches[0];
+    const champion = finalMatch.winner!;
+    const runnerUp = finalMatch.eliminated[0];
+
+    // Find semifinal losers for 3rd place
+    const semiRound = state.bracket.rounds[2];
+    const semiLosers = semiRound.matches.flatMap((m) => m.eliminated);
+    const third = semiLosers[0] ?? runnerUp; // fallback
+
+    state.podium = { first: champion, second: runnerUp, third };
+    state.phase = 'podium';
+    return state;
   }
 
   if (isLastMatchInRound) {
@@ -264,45 +253,6 @@ function advanceToNext(state: TournamentState): TournamentState {
   return state;
 }
 
-function handleFinalRound(state: TournamentState): TournamentState {
-  const finalMatch = state.bracket.rounds[3].matches[0];
-  const champion = finalMatch.winner!;
-  const remaining = finalMatch.eliminated;
-
-  if (remaining.length === 2) {
-    // Champion just picked, need runner-up selection
-    state.phase = 'final-runner-up';
-  }
-
-  return state;
-}
-
-/**
- * Called when the user picks the runner-up from the remaining 2 candidates.
- * Returns state with podium result and 'podium' phase.
- */
-export function pickRunnerUp(state: TournamentState, runnerUpId: string): TournamentState {
-  const next = structuredClone(state);
-  const finalMatch = next.bracket.rounds[3].matches[0];
-  const champion = finalMatch.winner!;
-  const remaining = finalMatch.eliminated;
-
-  if (!remaining.includes(runnerUpId)) {
-    throw new Error(`Candidate ${runnerUpId} is not in the final remaining candidates`);
-  }
-
-  const third = remaining.find((id) => id !== runnerUpId)!;
-
-  next.podium = {
-    first: champion,
-    second: runnerUpId,
-    third,
-  };
-  next.phase = 'podium';
-
-  return next;
-}
-
 /**
  * Advance from round-transition to the next round's playing phase.
  */
@@ -311,7 +261,6 @@ export function advanceFromTransition(state: TournamentState): TournamentState {
   const nextRoundIndex = next.currentRound + 1;
 
   if (nextRoundIndex >= next.bracket.rounds.length) {
-    // Should not happen if transitions are correct
     next.phase = 'podium';
     return next;
   }
@@ -320,12 +269,10 @@ export function advanceFromTransition(state: TournamentState): TournamentState {
   next.currentMatchIndex = 0;
 
   const nextRound = next.bracket.rounds[nextRoundIndex];
-  if (nextRound.type === '1v1') {
-    next.phase = 'playing-1v1';
-  } else if (nextRound.type === 'pick-one-from-three') {
+  if (nextRound.type === 'pick-one-from-three') {
     next.phase = 'playing-pick-three';
-  } else if (nextRound.type === 'final') {
-    next.phase = 'final-champion';
+  } else {
+    next.phase = 'playing-1v1';
   }
 
   return next;
@@ -341,11 +288,11 @@ export function startFromOnboarding(state: TournamentState): TournamentState {
 }
 
 /**
- * Transition from bracket preview to first match.
+ * Transition from bracket preview to first match (R0 = pick-from-three).
  */
 export function startFromBracketPreview(state: TournamentState): TournamentState {
   const next = structuredClone(state);
-  next.phase = 'playing-1v1';
+  next.phase = 'playing-pick-three';
   return next;
 }
 

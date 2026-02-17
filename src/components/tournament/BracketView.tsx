@@ -33,7 +33,7 @@ export function BracketView({
           className="text-center text-xs sm:text-sm font-bold text-accent uppercase tracking-wider"
           style={{ fontFamily: "'Press Start 2P', cursive" }}
         >
-          {isPreview ? 'BRACKET DEL TORNEO' : 'ESTADO DEL BRACKET'}
+          {isPreview ? 'JUEGA EL TORNEO ELECTORAL' : 'ESTADO DEL BRACKET'}
         </h2>
       </div>
 

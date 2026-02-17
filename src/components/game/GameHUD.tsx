@@ -8,6 +8,7 @@ import { LayoutGrid, RotateCcw } from 'lucide-react';
 
 interface GameHUDProps {
   roundLabel: string;
+  arcadeRoundLabel?: string;
   matchLabel: string;
   overallProgress: number;
   onViewBracket: () => void;
@@ -20,6 +21,7 @@ interface GameHUDProps {
 
 export function GameHUD({
   roundLabel,
+  arcadeRoundLabel,
   matchLabel,
   overallProgress,
   onViewBracket,
@@ -34,7 +36,7 @@ export function GameHUD({
             className="text-white font-bold text-[10px] sm:text-xs uppercase tracking-wider"
             style={{ fontFamily: "'Press Start 2P', cursive" }}
           >
-            {roundLabel}
+            {arcadeRoundLabel || roundLabel}
           </span>
 
           <div className="flex items-center gap-2">

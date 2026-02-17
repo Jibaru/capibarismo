@@ -511,4 +511,25 @@
   .animate-color-cycle {
     animation: color-cycle 3s linear infinite;
   }
+
+  /* Shake animation for vote button hover */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px) rotate(-1deg); }
+    75% { transform: translateX(2px) rotate(1deg); }
+  }
+
+  .hover-shake:hover {
+    animation: shake 0.3s ease-in-out;
+  }
+
+  /* Glow pulse for vote button */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.7); }
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 1.5s ease-in-out infinite;
+  }
 }

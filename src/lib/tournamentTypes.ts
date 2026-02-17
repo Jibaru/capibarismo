@@ -7,22 +7,20 @@ import type { CandidateID } from '@/data/types';
 export type TournamentPhase =
   | 'onboarding'
   | 'bracket-preview'
+  | 'playing-pick-three'
   | 'playing-1v1'
   | 'round-transition'
-  | 'playing-pick-three'
-  | 'final-champion'
-  | 'final-runner-up'
   | 'podium';
 
 // =============================================================================
 // Tournament Match & Round
 // =============================================================================
 
-export type RoundType = '1v1' | 'pick-one-from-three' | 'final';
+export type RoundType = '1v1' | 'pick-one-from-three';
 
 export interface TournamentMatch {
   id: string;
-  candidates: CandidateID[];   // 2 for 1v1, 3 for pick-from-three/final
+  candidates: CandidateID[];   // 2 for 1v1, 3 for pick-from-three
   winner: CandidateID | null;
   eliminated: CandidateID[];
 }
@@ -66,6 +64,7 @@ export interface MatchProgress {
   current: number;       // matches completed so far (across all rounds)
   total: number;         // total matches in tournament
   roundLabel: string;    // e.g., "Ronda 1"
-  matchLabel: string;    // e.g., "Encuentro 5 de 18"
+  arcadeRoundLabel: string; // e.g., "RONDA 1: ¡ELIGE!"
+  matchLabel: string;    // e.g., "Grupo 5 de 12"
   overallPercent: number; // 0-100
 }

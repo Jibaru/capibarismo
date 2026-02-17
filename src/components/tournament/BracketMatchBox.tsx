@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { findCandidateBase } from '@/data';
+import { Lock } from 'lucide-react';
 import type { TournamentMatch } from '@/lib/tournamentTypes';
 
 interface BracketMatchBoxProps {
@@ -26,10 +27,17 @@ export function BracketMatchBox({ match, status, roundType }: BracketMatchBoxPro
       )}
     >
       {isEmpty ? (
-        <div className="flex items-center justify-center gap-2 py-1">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/30 text-xs">?</div>
-          <span className="text-white/20 text-[10px] sm:text-xs">vs</span>
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/30 text-xs">?</div>
+        <div className="flex flex-col items-center justify-center gap-1 py-1">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/20">
+              <Lock className="w-3 h-3" />
+            </div>
+            <span className="text-white/20 text-[10px] sm:text-xs">vs</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/20">
+              <Lock className="w-3 h-3" />
+            </div>
+          </div>
+          <span className="text-white/15 text-[8px]" style={{ fontFamily: "'Press Start 2P', cursive" }}>¿?</span>
         </div>
       ) : (
         <div className="flex items-center gap-1.5 sm:gap-2">

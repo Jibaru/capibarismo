@@ -1,6 +1,6 @@
-// filepath: src/components/MobileNav.tsx
 import * as React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTournamentStore } from '@/store/useTournamentStore';
 import {
   Box,
   Drawer,
@@ -31,6 +31,7 @@ export function MobileNav() {
   const [ignoreTap, setIgnoreTap] = React.useState(false);
   const menuBtnRef = React.useRef<HTMLButtonElement | null>(null);
   const location = useLocation();
+  const resetTournament = useTournamentStore((s) => s.resetTournament);
 
   // Detect iOS (including iPadOS that reports as Mac with touch)
   const isIOS = React.useMemo(() => {
@@ -66,6 +67,9 @@ export function MobileNav() {
               to={item.path}
               onClick={(e) => {
                 e.stopPropagation();
+                if (item.path === '/jugar' && location.pathname === '/jugar') {
+                  resetTournament();
+                }
                 closeDrawer();
               }}
               selected={location.pathname === item.path}

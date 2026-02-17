@@ -2,8 +2,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CandidateCard } from './CandidateCard';
 import { useGameUIStore } from '@/store/useGameUIStore';
 import { cn } from '@/lib/utils';
-import { Heart, ArrowRight, X } from 'lucide-react';
-import { useState } from 'react';
+import { Heart } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DonationModal } from '../common/DonationModal';
 import { usePostHog } from '@/lib/posthog';
 
@@ -37,8 +37,54 @@ interface VSScreenProps {
 export function VSScreen({ pair, onVote, isSubmitting, roundLabel }: VSScreenProps) {
   const { reducedMotion } = useGameUIStore();
   const [showDonationModal, setShowDonationModal] = useState(false);
+  const [voteResult, setVoteResult] = useState<{ winner: 'A' | 'B' } | null>(null);
+  const leftCardRef = useRef<HTMLDivElement>(null);
+  const rightCardRef = useRef<HTMLDivElement>(null);
   const posthog = usePostHog();
-  
+
+  // Reset vote result when pair changes
+  useEffect(() => {
+    setVoteResult(null);
+  }, [pair.pairId]);
+
+  // Fire confetti on vote
+  useEffect(() => {
+    if (!voteResult || reducedMotion) return;
+
+    let cancelled = false;
+    const fireConfetti = async () => {
+      const confetti = (await import('canvas-confetti')).default;
+      if (cancelled) return;
+      const ref = voteResult.winner === 'A' ? leftCardRef : rightCardRef;
+      const rect = ref.current?.getBoundingClientRect();
+      const originX = rect ? (rect.left + rect.width / 2) / window.innerWidth : 0.5;
+      const originY = rect ? (rect.top + rect.height / 3) / window.innerHeight : 0.5;
+      confetti({
+        particleCount: 30,
+        spread: 60,
+        origin: { x: originX, y: originY },
+        colors: ['#facc15', '#f59e0b', '#ffffff'],
+        disableForReducedMotion: true,
+      });
+    };
+    fireConfetti();
+
+    return () => { cancelled = true; };
+  }, [voteResult, reducedMotion]);
+
+  const handleVote = useCallback((side: 'A' | 'B') => {
+    if (voteResult || isSubmitting) return;
+    setVoteResult({ winner: side });
+
+    setTimeout(() => {
+      onVote(side);
+    }, reducedMotion ? 100 : 800);
+  }, [voteResult, isSubmitting, onVote, reducedMotion]);
+
+  const springTransition = reducedMotion
+    ? { duration: 0 }
+    : { type: 'spring' as const, stiffness: 300, damping: 25 };
+
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-2 sm:p-4 md:p-8">
       {/* Round label above VS */}
@@ -53,15 +99,17 @@ export function VSScreen({ pair, onVote, isSubmitting, roundLabel }: VSScreenPro
         </div>
       )}
 
-      {/* VS Logo in center - adjusted for mobile */}
+      {/* VS Logo in center - continuous pulse */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
         <motion.div
           initial={reducedMotion ? {} : { scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ 
-            type: reducedMotion ? 'tween' : 'spring',
-            duration: reducedMotion ? 0 : 0.3, // Reduce from 0.5
-            delay: 0, // Remove delay
+          animate={reducedMotion ? { scale: 1, rotate: 0 } : {
+            scale: [1, 1.1, 1],
+            rotate: 0,
+          }}
+          transition={reducedMotion ? { duration: 0 } : {
+            scale: { repeat: Infinity, duration: 1.2, ease: 'easeInOut' },
+            rotate: { type: 'spring', duration: 0.3 },
           }}
           className={cn(
             'text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-bold',
@@ -76,33 +124,55 @@ export function VSScreen({ pair, onVote, isSubmitting, roundLabel }: VSScreenPro
           VS
         </motion.div>
       </div>
-      
-      {/* Candidates - side by side on all screens */}
+
+      {/* Candidates - slide in from sides */}
       <div className="relative w-full max-w-7xl">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={pair.pairId}
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
-            transition={{ duration: reducedMotion ? 0 : 0.15 }}
+            initial={{ opacity: reducedMotion ? 1 : 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: reducedMotion ? 1 : 0 }}
+            transition={{ duration: reducedMotion ? 0 : 0.1 }}
             className="w-full grid grid-cols-2 gap-2 sm:gap-4 md:gap-8 lg:gap-16 items-center"
           >
-            <CandidateCard
-              candidate={pair.a}
-              side="left"
-              onSelect={() => onVote('A')}
-              disabled={isSubmitting}
-            />
-            <CandidateCard
-              candidate={pair.b}
-              side="right"
-              onSelect={() => onVote('B')}
-              disabled={isSubmitting}
-            />
+            {/* Left candidate - slides from left */}
+            <motion.div
+              ref={leftCardRef}
+              initial={reducedMotion ? {} : { x: '-100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={reducedMotion ? {} : { x: '-100%', opacity: 0 }}
+              transition={springTransition}
+            >
+              <CandidateCard
+                candidate={pair.a}
+                side="left"
+                onSelect={() => handleVote('A')}
+                disabled={isSubmitting || !!voteResult}
+                voteState={voteResult ? (voteResult.winner === 'A' ? 'winner' : 'loser') : undefined}
+              />
+            </motion.div>
+
+            {/* Right candidate - slides from right */}
+            <motion.div
+              ref={rightCardRef}
+              initial={reducedMotion ? {} : { x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={reducedMotion ? {} : { x: '100%', opacity: 0 }}
+              transition={springTransition}
+            >
+              <CandidateCard
+                candidate={pair.b}
+                side="right"
+                onSelect={() => handleVote('B')}
+                disabled={isSubmitting || !!voteResult}
+                voteState={voteResult ? (voteResult.winner === 'B' ? 'winner' : 'loser') : undefined}
+              />
+            </motion.div>
           </motion.div>
         </AnimatePresence>
       </div>
+
       {/* Yape support button - mobile only */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -124,7 +194,7 @@ export function VSScreen({ pair, onVote, isSubmitting, roundLabel }: VSScreenPro
       </motion.div>
 
       {/* Donation Modal */}
-      <DonationModal 
+      <DonationModal
         isOpen={showDonationModal}
         onClose={() => setShowDonationModal(false)}
       />

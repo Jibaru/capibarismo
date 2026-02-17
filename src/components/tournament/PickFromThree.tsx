@@ -1,23 +1,22 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { CandidateCard } from '@/components/game/CandidateCard';
 import { useGameUIStore } from '@/store/useGameUIStore';
-import { cn } from '@/lib/utils';
 import { findCandidateBase } from '@/data';
 import type { CandidateBase } from '@/data/types';
 
 interface PickFromThreeProps {
   candidateIds: string[];
   onSelect: (winnerId: string) => void;
-  context: 'semifinal' | 'champion';
-  groupIndex?: number;  // for semifinal: which group (0, 1, 2)
+  groupIndex?: number;
+  totalGroups?: number;
   disabled?: boolean;
 }
 
 export function PickFromThree({
   candidateIds,
   onSelect,
-  context,
   groupIndex,
+  totalGroups,
   disabled,
 }: PickFromThreeProps) {
   const { reducedMotion } = useGameUIStore();
@@ -26,12 +25,10 @@ export function PickFromThree({
     .map((id) => findCandidateBase(id))
     .filter((c): c is CandidateBase => c !== undefined);
 
-  const title = context === 'champion'
-    ? 'ELIGE A TU CAMPEÓN'
-    : `ELIGE A TU FAVORITO`;
+  const title = 'ELIGE A TU FAVORITO';
 
-  const subtitle = context === 'semifinal' && groupIndex !== undefined
-    ? `Grupo ${groupIndex + 1} de 3`
+  const subtitle = groupIndex !== undefined && totalGroups
+    ? `Grupo ${groupIndex + 1} de ${totalGroups}`
     : undefined;
 
   return (
@@ -39,12 +36,7 @@ export function PickFromThree({
       {/* Title */}
       <div className="text-center mb-4 sm:mb-6">
         <h2
-          className={cn(
-            'text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider',
-            context === 'champion'
-              ? 'text-yellow-400 drop-shadow-[0_0_10px_rgba(255,200,0,0.5)]'
-              : 'text-accent'
-          )}
+          className="text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider text-accent"
           style={{ fontFamily: "'Press Start 2P', cursive" }}
         >
           {title}
@@ -65,16 +57,22 @@ export function PickFromThree({
             animate={{ opacity: 1, y: 0 }}
             exit={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
             transition={{ duration: reducedMotion ? 0 : 0.15 }}
-            className="w-full grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-8"
+            className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 md:gap-8"
           >
-            {candidates.map((candidate) => (
-              <CandidateCard
+            {candidates.map((candidate, i) => (
+              <div
                 key={candidate.id}
-                candidate={candidate}
-                side="left"
-                onSelect={() => onSelect(candidate.id)}
-                disabled={disabled}
-              />
+                className={i === 2 ? 'col-span-2 sm:col-span-1 flex justify-center' : ''}
+              >
+                <div className={i === 2 ? 'w-1/2 sm:w-full' : 'w-full'}>
+                  <CandidateCard
+                    candidate={candidate}
+                    side="left"
+                    onSelect={() => onSelect(candidate.id)}
+                    disabled={disabled}
+                  />
+                </div>
+              </div>
             ))}
           </motion.div>
         </AnimatePresence>

@@ -6,7 +6,6 @@ import type { TournamentState, MatchProgress, TournamentMatch } from '@/lib/tour
 import {
   createTournamentState,
   advanceTournament,
-  pickRunnerUp,
   advanceFromTransition,
   startFromOnboarding,
   startFromBracketPreview,
@@ -24,7 +23,6 @@ interface TournamentStore {
   // Actions
   startNewTournament: () => void;
   submitVote: (winnerId: string) => void;
-  submitRunnerUp: (runnerUpId: string) => void;
   advanceFromRoundTransition: () => void;
   goToBracketPreview: () => void;
   startPlaying: () => void;
@@ -62,12 +60,6 @@ export const useTournamentStore = create<TournamentStore>()(
         set((store) => {
           if (!store.state) return store;
           return { state: advanceTournament(store.state, winnerId) };
-        }),
-
-      submitRunnerUp: (runnerUpId) =>
-        set((store) => {
-          if (!store.state) return store;
-          return { state: pickRunnerUp(store.state, runnerUpId) };
         }),
 
       advanceFromRoundTransition: () =>

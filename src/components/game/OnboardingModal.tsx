@@ -43,19 +43,19 @@ export function OnboardingModal({ open, onStart }: OnboardingModalProps) {
           <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/80 font-sans">
             <div className="flex items-center gap-2 px-2">
               <span className="text-accent font-bold text-[10px] sm:text-xs w-16 shrink-0">Ronda 1</span>
-              <span>18 duelos 1 vs 1</span>
+              <span>Elige 1 de cada grupo de 3 (12 grupos)</span>
             </div>
             <div className="flex items-center gap-2 px-2">
               <span className="text-accent font-bold text-[10px] sm:text-xs w-16 shrink-0">Ronda 2</span>
-              <span>9 duelos 1 vs 1</span>
+              <span>Elige 1 de cada grupo de 3 (4 grupos)</span>
             </div>
             <div className="flex items-center gap-2 px-2">
               <span className="text-accent font-bold text-[10px] sm:text-xs w-16 shrink-0">Semifinal</span>
-              <span>Elige 1 de cada grupo de 3</span>
+              <span>2 duelos 1 vs 1</span>
             </div>
             <div className="flex items-center gap-2 px-2">
               <span className="text-accent font-bold text-[10px] sm:text-xs w-16 shrink-0">Final</span>
-              <span>Elige a tu campeón</span>
+              <span>1 duelo final 1 vs 1</span>
             </div>
           </div>
 
