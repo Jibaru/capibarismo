@@ -118,20 +118,18 @@ export function BracketTreePage({
         showOverviewFirst={showOverviewFirst ?? mode === 'preview'}
       />
 
-      {/* Action button — hidden during viewing mode (auto-flow handles transitions) */}
-      {mode !== 'viewing' && (
-        <div className="sticky bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-4 py-2 sm:py-6">
-          <div className="max-w-sm mx-auto">
-            <Button
-              onClick={onAction}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 text-sm border-2 border-white/20 hover:border-white/50 shadow-[0_4px_0_rgb(0,0,0,0.5)] hover:shadow-[0_2px_0_rgb(0,0,0,0.5)] hover:translate-y-[2px] transition-all uppercase tracking-wider"
-              style={{ fontFamily: "'Press Start 2P', cursive", fontSize: 'clamp(0.5rem, 2vw, 0.7rem)' }}
-            >
-              {buttonText}
-            </Button>
-          </div>
+      {/* Action button */}
+      <div className="sticky bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-4 py-2 sm:py-6">
+        <div className="max-w-sm mx-auto">
+          <Button
+            onClick={onAction}
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 text-sm border-2 border-white/20 hover:border-white/50 shadow-[0_4px_0_rgb(0,0,0,0.5)] hover:shadow-[0_2px_0_rgb(0,0,0,0.5)] hover:translate-y-[2px] transition-all uppercase tracking-wider"
+            style={{ fontFamily: "'Press Start 2P', cursive", fontSize: 'clamp(0.5rem, 2vw, 0.7rem)' }}
+          >
+            {buttonText}
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { VSScreen } from '@/components/game/VSScreen';
 import { GameHUD } from '@/components/game/GameHUD';
 import { CandidateInfoOverlay } from '@/components/game/CandidateInfoOverlay';
-import { OnboardingModal } from '@/components/game/OnboardingModal';
 import { BracketTreePage } from '@/components/tournament/BracketTreePage';
 import { PickFromThree } from '@/components/tournament/PickFromThree';
 import { PodiumScreen } from '@/components/tournament/PodiumScreen';
@@ -92,34 +91,23 @@ export function JugarPage() {
     setOverlayVisible(true);
   }, []);
 
-  // No tournament → show onboarding to start one
+  // No tournament → create one and go straight to bracket preview
   if (!tournament) {
-    return (
-      <div className="min-h-screen fighting-game-bg flex flex-col">
-        <OnboardingModal
-          open={true}
-          onStart={() => {
-            startNewTournament();
-            goToBracketPreview();
-          }}
-        />
-        <CandidateInfoOverlay />
-      </div>
-    );
+    startNewTournament();
+    goToBracketPreview();
+    return null;
+  }
+
+  // Legacy: skip onboarding phase if somehow still in it
+  if (tournament.phase === 'onboarding') {
+    goToBracketPreview();
+    return null;
   }
 
   const progress = getMatchProgress(tournament);
 
   // Phase-based rendering
   switch (tournament.phase) {
-    case 'onboarding':
-      return (
-        <div className="min-h-screen fighting-game-bg flex flex-col">
-          <OnboardingModal open={true} onStart={goToBracketPreview} />
-          <CandidateInfoOverlay />
-        </div>
-      );
-
     case 'bracket-preview':
       return (
         <>

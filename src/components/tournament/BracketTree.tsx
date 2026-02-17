@@ -23,9 +23,9 @@ type MatchStatus = 'completed' | 'current' | 'upcoming';
 // Constants
 // =============================================================================
 
-const MATCH_H = 72;
-const GAP = 12;
-const COL_W = 180;
+const MATCH_H = 88;
+const GAP = 10;
+const COL_W = 190;
 const CONNECTOR_W = 32;
 
 // Derived
@@ -158,11 +158,12 @@ function MatchSlot({
 
             return (
               <div key={cId} className={cn(
-                'flex items-center gap-1.5',
+                'flex items-center gap-1.5 px-1.5',
                 i > 0 && 'border-t border-white/10',
-              )} style={{ height: match.candidates.length <= 2 ? '50%' : '33%' }}>
+              )} style={{ height: match.candidates.length <= 2 ? '50%' : '33.33%' }}>
                 <div className={cn(
-                  'w-7 h-7 rounded-full overflow-hidden border flex-shrink-0',
+                  'rounded-full overflow-hidden border flex-shrink-0',
+                  match.candidates.length <= 2 ? 'w-8 h-8' : 'w-6 h-6',
                   isWinner && 'border-yellow-400/80',
                   isEliminated && 'border-red-500/50 opacity-40',
                   !isWinner && !isEliminated && 'border-white/20',
