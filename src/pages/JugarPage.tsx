@@ -122,8 +122,9 @@ export function JugarPage() {
             bracket={tournament.bracket}
             currentRound={tournament.currentRound}
             currentMatchIndex={tournament.currentMatchIndex}
-            onAction={() => { setShowBracketOverview(true); startPlaying(); }}
+            onAction={() => { startPlaying(); setOverlayVisible(true); }}
             mode="preview"
+            showOverviewFirst={false}
           />
           <CandidateInfoOverlay />
         </>
