@@ -63,6 +63,33 @@ export function JugarPage() {
   const currentMatch = tournament ? getCurrentMatch(tournament) : null;
   const phase = tournament?.phase;
 
+  // Preload candidate images for the current match before the overlay appears.
+  // This fills the browser cache during the AUTO_SHOW_DELAY window so images
+  // are ready the moment the overlay renders, eliminating black frames.
+  useEffect(() => {
+    if (!currentMatch) return;
+
+    const imgs: HTMLImageElement[] = [];
+    currentMatch.candidates.forEach((id) => {
+      const c = findCandidateBase(id);
+      if (!c) return;
+
+      const mainSrc = c.fullBody || c.headshot;
+      if (mainSrc) {
+        const img = new window.Image();
+        img.src = encodeURI(mainSrc);
+        imgs.push(img);
+      }
+      if (c.partyIcon) {
+        const img = new window.Image();
+        img.src = encodeURI(c.partyIcon);
+        imgs.push(img);
+      }
+    });
+
+    return () => { imgs.forEach((img) => { img.src = ''; }); };
+  }, [tournament?.currentRound, tournament?.currentMatchIndex]);
+
   // Auto-show match overlay after brief bracket flash
   useEffect(() => {
     if (phase !== 'playing-pick-three' && phase !== 'playing-1v1') return;
@@ -122,8 +149,9 @@ export function JugarPage() {
             bracket={tournament.bracket}
             currentRound={tournament.currentRound}
             currentMatchIndex={tournament.currentMatchIndex}
-            onAction={() => { setShowBracketOverview(true); startPlaying(); }}
+            onAction={() => { startPlaying(); setOverlayVisible(true); }}
             mode="preview"
+            showOverviewFirst={false}
           />
           <CandidateInfoOverlay />
         </>

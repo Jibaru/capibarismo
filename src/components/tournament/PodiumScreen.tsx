@@ -64,6 +64,7 @@ export function PodiumScreen({ podium, onPlayAgain }: PodiumScreenProps) {
           if (blob) {
             const file = new File([blob], 'mi-torneo-capibarismo.png', { type: 'image/png' });
 
+            // Mobile: share sheet with image file
             if (navigator.share && navigator.canShare?.({ files: [file] })) {
               await navigator.share({
                 text: 'Mi Torneo Capibarismo - Juega en capibarismo.com',
@@ -72,7 +73,13 @@ export function PodiumScreen({ podium, onPlayAgain }: PodiumScreenProps) {
               return;
             }
 
-            // Fallback: download the image
+            // Desktop: copy image to clipboard
+            if (navigator.clipboard?.write) {
+              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+              return;
+            }
+
+            // Last resort: download the image
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -174,7 +181,7 @@ export function PodiumScreen({ podium, onPlayAgain }: PodiumScreenProps) {
                     {config.label}
                   </p>
                   {candidate?.partido && (
-                    <p className="text-white/50 text-[10px] sm:text-xs mt-0.5 truncate">
+                    <p className="text-white/50 text-[10px] sm:text-xs mt-0.5 break-words">
                       {candidate.partido}
                     </p>
                   )}
