@@ -97,6 +97,10 @@ npm run dev
 - 💻 Contribuir mejoras de código
 - 📖 Mejorar documentación
 
+## 👥 Construido por
+
+Construido por [@SanGoku95](https://github.com/SanGoku95), [@ditodamaster](https://github.com/ditodamaster), [@Daphini-UPT](https://github.com/Daphini-UPT), y [@crafter-station/maintainers](https://github.com/orgs/crafter-station/teams/maintainers)
+
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia Apache 2.0. Consulta el archivo [LICENSE](LICENSE) para más detalles.
@@ -258,6 +262,10 @@ We welcome contributions from the community! This is an open source project that
 - 💻 Contribute code improvements
 - 📖 Enhance documentation
 
+## 👥 Built by
+
+Built by [@SanGoku95](https://github.com/SanGoku95), [@ditodamaster](https://github.com/ditodamaster), and [@crafter-station/maintainers](https://github.com/orgs/crafter-station/teams/maintainers)
+
 ## 📄 License
 
 This project is licensed under the [Apache License 2.0](LICENSE) - see the LICENSE file for details.
@@ -356,6 +364,10 @@ npm run dev
 - 🌐 Mejorar traducciones (Español/Inglés)
 - 💻 Contribuir mejoras de código
 - 📖 Mejorar documentación
+
+## 👥 Construido por
+
+Construido por [@SanGoku95](https://github.com/SanGoku95), [@ditodamaster](https://github.com/ditodamaster), y [@crafter-station/maintainers](https://github.com/orgs/crafter-station/teams/maintainers)
 
 ## 📄 Licencia
 
