@@ -70,7 +70,6 @@ export function CandidateCard({ candidate, side, onSelect, disabled, voteState }
             src={safeSrc(candidate.headshot)}
             alt={candidate.nombre}
             className="w-16 h-20 sm:w-32 sm:h-44 md:w-40 md:h-52 lg:w-48 lg:h-64 object-contain rounded overflow-hidden shadow-lg"
-            loading="lazy"
             decoding="async"
           />
         ) : (
@@ -103,7 +102,6 @@ export function CandidateCard({ candidate, side, onSelect, disabled, voteState }
                 src={safeSrc(candidate.partyIcon)}
                 alt={candidate.partido || 'Partido político'}
                 className="w-8 h-8 sm:w-16 sm:h-16 object-contain rounded-lg bg-white/10 p-1 sm:p-2 border border-white/20"
-                loading="lazy"
               />
               {candidate.partido && (
                 <p className="text-white/60 text-[7px] sm:text-[10px] text-center px-1 sm:px-2 line-clamp-1 sm:line-clamp-2">
