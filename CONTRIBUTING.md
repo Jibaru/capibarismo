@@ -16,8 +16,9 @@ We take contributions seriously. We expect the same from you.
 
 | Maintainer | Role |
 |---|---|
-| [@SanGoku95](https://github.com/SanGoku95) | Project lead & core maintainer |
+| [@SanGoku95](https://github.com/SanGoku95) | core maintainer |
 | [@ditodamaster](https://github.com/ditodamaster) | Core maintainer |
+| [@Daphini-UPT](https://github.com/Daphini-UPT) | Core maintainer |
 | [@Railly](https://github.com/Railly) | Core maintainer |
 | [@crafter-station/maintainers](https://github.com/orgs/crafter-station/teams/maintainers) | Core maintainers team |
 
