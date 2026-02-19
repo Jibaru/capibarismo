@@ -99,7 +99,7 @@ npm run dev
 
 ## 👥 Construido por
 
-Construido por [@SanGoku95](https://github.com/SanGoku95), [@ditodamaster](https://github.com/ditodamaster), y [@crafter-station/maintainers](https://github.com/orgs/crafter-station/teams/maintainers)
+Construido por [@SanGoku95](https://github.com/SanGoku95), [@ditodamaster](https://github.com/ditodamaster), [@Daphini-UPT](https://github.com/Daphini-UPT), y [@crafter-station/maintainers](https://github.com/orgs/crafter-station/teams/maintainers)
 
 ## 📄 Licencia
 
