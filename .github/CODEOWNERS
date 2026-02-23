@@ -2,25 +2,25 @@
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default owner for everything in the repo
-* @SanGoku95 @aldodelgadoh @Daphini-UPT
+* @SanGoku95 @ditodamaster @Daphini-UPT
 
 # Core application code
-/src/ @SanGoku95 @aldodelgadoh @Daphini-UPT
-/api/ @SanGoku95 @aldodelgadoh @Daphini-UPT
+/src/ @SanGoku95 @ditodamaster @Daphini-UPT
+/api/ @SanGoku95 @ditodamaster @Daphini-UPT
 
 # Infrastructure and CI/CD
-/.github/ @SanGoku95 @aldodelgadoh @Daphini-UPT
-/vercel.json @SanGoku95 @aldodelgadoh @Daphini-UPT
+/.github/ @SanGoku95 @ditodamaster @Daphini-UPT
+/vercel.json @SanGoku95 @ditodamaster @Daphini-UPT
 
 # Security-sensitive files
-/.github/workflows/ @SanGoku95 @aldodelgadoh @Daphini-UPT
-/.github/dependabot.yml @SanGoku95 @aldodelgadoh @Daphini-UPT
+/.github/workflows/ @SanGoku95 @ditodamaster @Daphini-UPT
+/.github/dependabot.yml @SanGoku95 @ditodamaster @Daphini-UPT
 
 # Configuration files
-/package.json @SanGoku95 @aldodelgadoh @Daphini-UPT
-/tsconfig*.json @SanGoku95 @aldodelgadoh @Daphini-UPT
-/vite.config.ts @SanGoku95 @aldodelgadoh @Daphini-UPT
+/package.json @SanGoku95 @ditodamaster @Daphini-UPT
+/tsconfig*.json @SanGoku95 @ditodamaster @Daphini-UPT
+/vite.config.ts @SanGoku95 @ditodamaster @Daphini-UPT
 
 # Documentation
-/docs/ @SanGoku95 @aldodelgadoh @Daphini-UPT
-/*.md @SanGoku95 @aldodelgadoh @Daphini-UPT
+/docs/ @SanGoku95 @ditodamaster @Daphini-UPT
+/*.md @SanGoku95 @ditodamaster @Daphini-UPT
