@@ -44,6 +44,9 @@ export function Header() {
             <Link to="/compass">Mapa Político</Link>
           </Button>
           <Button asChild variant="link" className="text-foreground">
+            <Link to="/proyectos">Proyectos</Link>
+          </Button>
+          <Button asChild variant="link" className="text-foreground">
             <Link to="/about">Acerca de</Link>
           </Button>
         </Box>
