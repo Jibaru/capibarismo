@@ -23,6 +23,7 @@ const navItems = [
   { text: 'Jugar', path: '/jugar', icon: <SportsEsportsIcon /> },
   { text: 'Comparador', path: '/compare', icon: <CompareArrowsIcon /> },
   { text: 'Mapa Político', path: '/compass', icon: <GavelIcon /> },
+  { text: 'Proyectos', path: '/proyectos', icon: <InfoOutlinedIcon /> },
   { text: 'Acerca de', path: '/about', icon: <InfoOutlinedIcon /> },
 ];
 
