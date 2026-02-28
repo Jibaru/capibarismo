@@ -12,6 +12,151 @@ export const openApiSpec = {
     }
   ],
   paths: {
+    '/api/surveys': {
+      get: {
+        summary: 'List all surveys',
+        description: 'Retrieve a paginated list of all processed surveys',
+        parameters: [
+          {
+            name: 'page',
+            in: 'query',
+            required: false,
+            description: 'Page number (default: 1)',
+            schema: {
+              type: 'integer',
+              minimum: 1,
+              default: 1,
+              example: 1
+            }
+          },
+          {
+            name: 'pageSize',
+            in: 'query',
+            required: false,
+            description: 'Number of items per page (default: 10, max: 100)',
+            schema: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 100,
+              default: 10,
+              example: 10
+            }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Successful response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: {
+                      type: 'boolean',
+                      example: true
+                    },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: {
+                            type: 'string',
+                            format: 'uuid',
+                            example: '550e8400-e29b-41d4-a716-446655440000'
+                          },
+                          source: {
+                            type: 'string',
+                            example: 'ipsos'
+                          },
+                          sourceUrl: {
+                            type: 'string',
+                            format: 'uri',
+                            example: 'https://example.com/survey.pdf'
+                          },
+                          data: {
+                            type: 'object',
+                            description: 'Structured survey data'
+                          },
+                          createdAt: {
+                            type: 'string',
+                            format: 'date-time'
+                          },
+                          updatedAt: {
+                            type: 'string',
+                            format: 'date-time'
+                          }
+                        }
+                      }
+                    },
+                    total: {
+                      type: 'integer',
+                      description: 'Total number of surveys',
+                      example: 42
+                    },
+                    page: {
+                      type: 'integer',
+                      description: 'Current page number',
+                      example: 1
+                    },
+                    pageSize: {
+                      type: 'integer',
+                      description: 'Number of items per page',
+                      example: 10
+                    },
+                    totalPages: {
+                      type: 'integer',
+                      description: 'Total number of pages',
+                      example: 5
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': {
+            description: 'Bad request',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: {
+                      type: 'boolean',
+                      example: false
+                    },
+                    error: {
+                      type: 'string',
+                      example: 'page must be greater than 0'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '500': {
+            description: 'Internal server error',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: {
+                      type: 'boolean',
+                      example: false
+                    },
+                    error: {
+                      type: 'string',
+                      example: 'Error message'
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     '/api/surveys/{source}/process': {
       post: {
         summary: 'Extract survey data from PDF',
