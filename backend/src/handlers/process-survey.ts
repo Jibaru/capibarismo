@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { Mistral } from '@mistralai/mistralai';
 import OpenAI from 'openai';
 import { ProcessIpsosSurveyService } from '@/services/process-ipsos-survey.js';
+import { ProcessDatumSurveyService } from '@/services/process-datum-survey.js';
 import { PDFExtractorService } from '@/services/shared/pdf-extractor.js';
 import { TextToJsonService } from '@/services/shared/text-to-json.js';
 import { URLFetchService } from '@/services/shared/url-fetch.js';
@@ -105,6 +106,16 @@ export function createProcessSurveyHandler(): ProcessSurveyHandler {
     logger
   );
   processors.set('ipsos', ipsosService);
+
+  const datumService = new ProcessDatumSurveyService(
+    surveyRepository,
+    pdfExtractRepository,
+    pdfExtractor,
+    textToJson,
+    urlFetch,
+    logger
+  );
+  processors.set('datum', datumService);
 
   return new ProcessSurveyHandler(processors);
 }

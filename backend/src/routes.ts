@@ -11,8 +11,8 @@ export function createRoutes(): Router {
   const listSurveysHandler = createListSurveysHandler();
   const authMiddleware = createAuthMiddleware();
 
-  router.get('/api/surveys', listSurveysHandler.handle);
-  router.post('/api/surveys/:source/process', authMiddleware.validate, processSurveyHandler.handle);
+  router.get('/api/surveys', (req, res) => listSurveysHandler.handle(req, res));
+  router.post('/api/surveys/:source/process', authMiddleware.validate, (req, res) => processSurveyHandler.handle(req, res));
 
   router.get('/health', (_req, res) => {
     res.json({
