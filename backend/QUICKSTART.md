@@ -27,6 +27,7 @@ Edit `.env` with your credentials:
 MISTRAL_API_KEY=your-mistral-key
 OPENAI_API_KEY=sk-proj-your-openai-key
 DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
+AUTH_TOKEN=your-secret-token
 PORT=3001
 NODE_ENV=development
 ```
@@ -66,7 +67,8 @@ Open in browser: **http://localhost:3001/docs**
 
 ## Next Steps
 
-- **Process a survey**: See API documentation for `/api/surveys/ipsos/process` endpoint
+- **List surveys**: `GET /api/surveys` (public endpoint)
+- **Process a survey**: `POST /api/surveys/ipsos/process` (requires `Authorization` header)
 - **Detailed setup**: [SETUP.md](SETUP.md)
 - **Development guide**: [DEVELOPMENT.md](DEVELOPMENT.md)
 - **Troubleshooting**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)

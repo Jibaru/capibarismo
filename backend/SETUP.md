@@ -74,6 +74,9 @@ OPENAI_API_KEY=sk-proj-your-actual-openai-key-here
 # Database Configuration (Neon PostgreSQL)
 DATABASE_URL=postgresql://username:password@ep-xxx.region.neon.tech/dbname?sslmode=require
 
+# Authentication
+AUTH_TOKEN=your-secret-token-here
+
 # Server Configuration
 PORT=3001
 NODE_ENV=development
@@ -162,20 +165,43 @@ curl http://localhost:3001/health
 Open browser: http://localhost:3001/docs
 
 You should see Scalar API documentation with:
-- `POST /api/surveys/{source}/process`
-- `GET /health`
+- `GET /api/surveys` - List all processed surveys (paginated)
+- `POST /api/surveys/{source}/process` - Extract survey data from PDF (requires authentication)
+- `GET /health` - Health check endpoint
 
-### 6.3 Test Extraction (Optional)
+### 6.3 Test List Endpoint (Optional)
+
+```bash
+curl http://localhost:3001/api/surveys?page=1&pageSize=10
+```
+
+**Expected response:**
+```json
+{
+  "success": true,
+  "data": [],
+  "total": 0,
+  "page": 1,
+  "pageSize": 10,
+  "totalPages": 0
+}
+```
+
+### 6.4 Test Extraction (Optional)
 
 ```bash
 curl -X POST http://localhost:3001/api/surveys/ipsos/process \
+  -H "Authorization: Bearer your-secret-token-here" \
   -H "Content-Type: application/json" \
   -d '{
     "pdfUrl": "https://example.com/test-survey.pdf"
   }'
 ```
 
-**Note**: This requires a valid PDF URL. See [DEVELOPMENT.md](DEVELOPMENT.md) for testing strategies.
+**Note**: This requires:
+- A valid PDF URL
+- The `AUTH_TOKEN` value set in your `.env` file
+See [DEVELOPMENT.md](DEVELOPMENT.md) for testing strategies.
 
 ## Troubleshooting
 

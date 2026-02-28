@@ -11,6 +11,15 @@ export const openApiSpec = {
       description: 'Development server'
     }
   ],
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        description: 'Authorization token (set via AUTH_TOKEN environment variable)'
+      }
+    }
+  },
   paths: {
     '/api/surveys': {
       get: {
@@ -161,6 +170,11 @@ export const openApiSpec = {
       post: {
         summary: 'Extract survey data from PDF',
         description: 'Extracts structured survey data from election polls using Mistral OCR and OpenAI',
+        security: [
+          {
+            bearerAuth: []
+          }
+        ],
         parameters: [
           {
             name: 'source',
@@ -262,6 +276,46 @@ export const openApiSpec = {
                     error: {
                       type: 'string',
                       example: 'pdfUrl is required in request body'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '401': {
+            description: 'Unauthorized - Missing authorization header',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: {
+                      type: 'boolean',
+                      example: false
+                    },
+                    error: {
+                      type: 'string',
+                      example: 'Authorization header is required'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '403': {
+            description: 'Forbidden - Invalid authorization token',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: {
+                      type: 'boolean',
+                      example: false
+                    },
+                    error: {
+                      type: 'string',
+                      example: 'Invalid authorization token'
                     }
                   }
                 }

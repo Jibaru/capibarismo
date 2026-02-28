@@ -83,12 +83,52 @@ Server runs at `http://localhost:3001` • API docs at `http://localhost:3001/do
 
 ## API Usage
 
+### List Surveys
+
+**Endpoint**: `GET /api/surveys`
+
+**Query Parameters**:
+- `page` (optional): Page number (default: 1)
+- `pageSize` (optional): Items per page (default: 10, max: 100)
+
+**Example**:
+```bash
+curl http://localhost:3001/api/surveys?page=1&pageSize=10
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "source": "ipsos",
+      "sourceUrl": "https://example.com/survey.pdf",
+      "data": { "nroDeRegistro": "123-2024-JNE", "muestra": 1200, "resultados": [...] },
+      "createdAt": "2026-02-28T12:00:00.000Z",
+      "updatedAt": "2026-02-28T12:00:00.000Z"
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "pageSize": 10,
+  "totalPages": 5
+}
+```
+
 ### Extract Survey Data
 
 **Endpoint**: `POST /api/surveys/{source}/process`
 
+**Authentication**: Required via `Authorization` header
+
 **Parameters**:
 - `source` (path): Survey source (currently only `ipsos` supported)
+
+**Headers**:
+- `Authorization`: Bearer token (set via `AUTH_TOKEN` environment variable)
+- `Content-Type`: application/json
 
 **Request Body**:
 ```json
@@ -100,6 +140,7 @@ Server runs at `http://localhost:3001` • API docs at `http://localhost:3001/do
 **Example**:
 ```bash
 curl -X POST http://localhost:3001/api/surveys/ipsos/process \
+  -H "Authorization: Bearer your-secret-token" \
   -H "Content-Type: application/json" \
   -d '{
     "pdfUrl": "https://www.ipsos.com/sites/default/files/ct/news/documents/2024-01/Peru_Poll_Results.pdf"
@@ -126,6 +167,10 @@ curl -X POST http://localhost:3001/api/surveys/ipsos/process \
   }
 }
 ```
+
+**Error Responses**:
+- `401 Unauthorized`: Missing authorization header
+- `403 Forbidden`: Invalid authorization token
 
 ## Database Scripts
 
