@@ -68,7 +68,7 @@ Open in browser: **http://localhost:3001/docs**
 ## Next Steps
 
 - **List surveys**: `GET /api/surveys` (public endpoint)
-- **Process a survey**: `POST /api/surveys/ipsos/process` (requires `Authorization` header)
+- **Process a survey**: `POST /api/surveys/{source}/process` where `{source}` is `ipsos`, `datum`, or `cpi` (requires `Authorization` header)
 - **Detailed setup**: [SETUP.md](SETUP.md)
 - **Development guide**: [DEVELOPMENT.md](DEVELOPMENT.md)
 - **Troubleshooting**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)

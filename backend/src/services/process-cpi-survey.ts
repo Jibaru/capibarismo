@@ -14,38 +14,50 @@ import type { Survey, PDFExtract } from '@/models/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export interface Sexo {
-  hombre?: number;
-  mujer?: number;
+export interface Ambito {
+  lima_metropolitana_lima_provincias_callao?: number;
+  interior_del_pais?: number;
 }
 
-export interface Region {
-  lima_callao?: number;
-  norte?: number;
-  centro?: number;
-  sur?: number;
+export interface MacrozonasCPI {
+  costa_y_sierra_norte?: number;
+  costa_sur?: number;
+  sierra_centro_y_sur?: number;
   oriente?: number;
 }
 
-export interface Zona {
-  urbana?: number;
+export interface Area {
+  urbano?: number;
   rural?: number;
 }
 
-export interface CandidatoDatum {
+export interface Sexo {
+  hombres?: number;
+  mujeres?: number;
+}
+
+export interface GrupoDeEdad {
+  '18_24'?: number;
+  '25_39'?: number;
+  '40_70'?: number;
+}
+
+export interface CandidatoCPI {
   nombre: string;
-  total: number;
+  peru_urbano_rural: number;
+  ambito?: Ambito;
+  macrozonas_cpi?: MacrozonasCPI;
+  area?: Area;
   sexo?: Sexo;
-  region?: Region;
-  zona?: Zona;
+  grupo_de_edad?: GrupoDeEdad;
 }
 
-export interface ResultadoDatum {
+export interface ResultadoCPI {
   fecha: string;
-  candidatos: CandidatoDatum[];
+  candidatos: CandidatoCPI[];
 }
 
-export interface DatumEncuesta {
+export interface CPIEncuesta {
   nroDeRegistro: string;
   muestra: number;
   lugares?: string;
@@ -53,40 +65,48 @@ export interface DatumEncuesta {
   porcentajeNivelConfianza?: number;
   universo?: string;
   fechaAplicacion?: string;
-  resultados: ResultadoDatum[];
+  resultados: ResultadoCPI[];
 }
 
-export interface ProcessDatumRequest {
+export interface ProcessCPIRequest {
   pdfUrl: string;
 }
 
-export interface ProcessDatumResponse {
+export interface ProcessCPIResponse {
   success: boolean;
-  survey?: Survey<DatumEncuesta>;
+  survey?: Survey<CPIEncuesta>;
   error?: string;
 }
 
-const candidatoDatumSchema = z.object({
+const candidatoCPISchema = z.object({
   nombre: z.string(),
-  total: z.number().min(0).max(100),
-  sexo: z.object({
-    hombre: z.number().min(0).max(100).optional(),
-    mujer: z.number().min(0).max(100).optional()
+  peru_urbano_rural: z.number().min(0).max(100),
+  ambito: z.object({
+    lima_metropolitana_lima_provincias_callao: z.number().min(0).max(100).optional(),
+    interior_del_pais: z.number().min(0).max(100).optional()
   }).optional(),
-  region: z.object({
-    lima_callao: z.number().min(0).max(100).optional(),
-    norte: z.number().min(0).max(100).optional(),
-    centro: z.number().min(0).max(100).optional(),
-    sur: z.number().min(0).max(100).optional(),
+  macrozonas_cpi: z.object({
+    costa_y_sierra_norte: z.number().min(0).max(100).optional(),
+    costa_sur: z.number().min(0).max(100).optional(),
+    sierra_centro_y_sur: z.number().min(0).max(100).optional(),
     oriente: z.number().min(0).max(100).optional()
   }).optional(),
-  zona: z.object({
-    urbana: z.number().min(0).max(100).optional(),
+  area: z.object({
+    urbano: z.number().min(0).max(100).optional(),
     rural: z.number().min(0).max(100).optional()
+  }).optional(),
+  sexo: z.object({
+    hombres: z.number().min(0).max(100).optional(),
+    mujeres: z.number().min(0).max(100).optional()
+  }).optional(),
+  grupo_de_edad: z.object({
+    '18_24': z.number().min(0).max(100).optional(),
+    '25_39': z.number().min(0).max(100).optional(),
+    '40_70': z.number().min(0).max(100).optional()
   }).optional()
 });
 
-const datumSchema = z.object({
+const cpiSchema = z.object({
   nroDeRegistro: z.string(),
   muestra: z.number().int().min(1),
   lugares: z.string().optional(),
@@ -96,11 +116,11 @@ const datumSchema = z.object({
   fechaAplicacion: z.string().optional(),
   resultados: z.array(z.object({
     fecha: z.string(),
-    candidatos: z.array(candidatoDatumSchema)
+    candidatos: z.array(candidatoCPISchema)
   }))
 });
 
-export class ProcessDatumSurveyService {
+export class ProcessCPISurveyService {
   constructor(
     private surveyRepository: ISurveyRepository,
     private pdfExtractRepository: IPDFExtractRepository,
@@ -110,7 +130,7 @@ export class ProcessDatumSurveyService {
     private logger: ILogger
   ) {}
 
-  async process(request: ProcessDatumRequest): Promise<ProcessDatumResponse> {
+  async process(request: ProcessCPIRequest): Promise<ProcessCPIResponse> {
     try {
       const tempDir = join(__dirname, '../../temp');
       const pdfPath = await this.urlFetch.downloadPDF(request.pdfUrl, tempDir);
@@ -118,9 +138,9 @@ export class ProcessDatumSurveyService {
       const extractedText = await this.extractOrLoadText(request.pdfUrl, pdfPath);
       const validatedData = await this.convertAndValidate(extractedText);
 
-      const survey: Survey<DatumEncuesta> = {
+      const survey: Survey<CPIEncuesta> = {
         id: randomUUID(),
-        source: 'datum',
+        source: 'cpi',
         sourceUrl: request.pdfUrl,
         content: extractedText,
         data: validatedData,
@@ -169,29 +189,32 @@ export class ProcessDatumSurveyService {
     return extractedText;
   }
 
-  private async convertAndValidate(text: string): Promise<DatumEncuesta> {
-    const schemaPath = join(__dirname, './data/datum_schema.json');
+  private async convertAndValidate(text: string): Promise<CPIEncuesta> {
+    const schemaPath = join(__dirname, './data/cpi_schema.json');
     const schemaContent = await readFile(schemaPath, 'utf-8');
     const jsonSchema = JSON.parse(schemaContent);
 
-    const structuredData = await this.textToJson.convert<DatumEncuesta>(
+    const structuredData = await this.textToJson.convert<CPIEncuesta>(
       text,
       jsonSchema,
-      'datum_encuesta',
+      'cpi_encuesta',
       this.buildExtractionPrompt()
     );
 
-    return datumSchema.parse(structuredData);
+    return cpiSchema.parse(structuredData);
   }
 
   private buildExtractionPrompt(): string {
-    return `You are an expert at extracting structured survey data from Datum Peru election polls.
+    return `You are an expert at extracting structured survey data from CPI Peru election polls.
 
 Extract all available information from the text and format it according to the JSON schema provided.
 
 IMPORTANT - The data appears under the section:
-"Intención de voto por candidato, para las elecciones presidenciales"
-With the question: "Si este domingo se realizaran las elecciones presidenciales y se presentan las siguientes personas como posibles candidatos, ¿por cuál de ellos votaría para elegir al presidente de la república?"
+"PERÚ: ELECCIONES GENERALES 2026"
+"INTENCIÓN DE VOTO PRESIDENCIAL"
+"RESPUESTA ASISTIDA CON TARJETA DE CANDIDATOS"
+
+Question 3: "En esta tarjeta, que le pido por favor la lea detenidamente, figuran en orden Alfabético, según apellido, los candidatos presidenciales inscritos ante el Jurado Nacional de Elecciones (JNE), para las elecciones de abril de este año, con sus respectivos partidos políticos, ¿Si las elecciones presidenciales fueran mañana, por cuál de estos candidatos votaría usted para presidente del Perú?"
 
 Output format structure:
 - Root level: metadata fields (nroDeRegistro, muestra, lugares, margenError, porcentajeNivelConfianza, universo, fechaAplicacion)
@@ -199,10 +222,12 @@ Output format structure:
 - Each result has "fecha" (YYYY-MM-DD format) and "candidatos" (array)
 - "candidatos": array of objects, each with:
   - "nombre": full name of candidate
-  - "total": national percentage
-  - Optional "sexo": object with hombre, mujer percentages
-  - Optional "region": object with lima_callao, norte, centro, sur, oriente percentages
-  - Optional "zona": object with urbana, rural percentages
+  - "peru_urbano_rural": total percentage for Peru urban and rural combined
+  - Optional "ambito": object with lima_metropolitana_lima_provincias_callao, interior_del_pais
+  - Optional "macrozonas_cpi": object with costa_y_sierra_norte, costa_sur, sierra_centro_y_sur, oriente
+  - Optional "area": object with urbano, rural
+  - Optional "sexo": object with hombres, mujeres
+  - Optional "grupo_de_edad": object with 18_24, 25_39, 40_70
 
 Guidelines:
 - Extract ALL candidates mentioned in results
@@ -213,9 +238,11 @@ Guidelines:
 - Omit optional fields if not found in document
 - Be precise with numbers and ensure consistency
 - If a candidate appears in multiple tables with different breakdowns, consolidate all their data into ONE object
-- For "sexo": use "hombre" and "mujer" (lowercase)
-- For "region": use "lima_callao", "norte", "centro", "sur", "oriente" (lowercase with underscore)
-- For "zona": use "urbana" and "rural" (lowercase)
-- Datum surveys only include sexo, region, and zona breakdowns (no NSE or edad data)`;
+- For "ambito": use "lima_metropolitana_lima_provincias_callao" and "interior_del_pais" (lowercase with underscores)
+- For "macrozonas_cpi": use "costa_y_sierra_norte", "costa_sur", "sierra_centro_y_sur", "oriente" (lowercase with underscores)
+- For "area": use "urbano" and "rural" (lowercase)
+- For "sexo": use "hombres" and "mujeres" (lowercase)
+- For "grupo_de_edad": use "18_24", "25_39", "40_70" (as property names with underscores)
+- CPI surveys include comprehensive demographic breakdowns across multiple dimensions`;
   }
 }

@@ -1,6 +1,6 @@
 # Survey Extractor
 
-Extract structured survey data from IPSOS PDFs using AI (Mistral OCR + OpenAI).
+Extract structured survey data from Peru election poll PDFs (IPSOS, Datum, CPI) using AI (Mistral OCR + OpenAI).
 
 ## 📚 Documentation
 
@@ -36,9 +36,12 @@ Layered architecture with dependency injection:
   routes.ts             # Express routes
   drizzle.config.ts     # Drizzle ORM configuration
   /handlers
-    process-survey.ts   # Generic handler with strategy pattern
+    process-survey.ts          # Generic handler with strategy pattern
+    list-surveys.ts            # List surveys handler
   /services
     process-ipsos-survey.ts    # IPSOS-specific processor
+    process-datum-survey.ts    # Datum-specific processor
+    process-cpi-survey.ts      # CPI-specific processor
     /shared
       pdf-extractor.ts         # Mistral OCR service
       text-to-json.ts          # OpenAI conversion service
@@ -124,7 +127,7 @@ curl http://localhost:3001/api/surveys?page=1&pageSize=10
 **Authentication**: Required via `Authorization` header
 
 **Parameters**:
-- `source` (path): Survey source (currently only `ipsos` supported)
+- `source` (path): Survey source (`ipsos`, `datum`, or `cpi`)
 
 **Headers**:
 - `Authorization`: Bearer token (set via `AUTH_TOKEN` environment variable)
@@ -171,6 +174,18 @@ curl -X POST http://localhost:3001/api/surveys/ipsos/process \
 **Error Responses**:
 - `401 Unauthorized`: Missing authorization header
 - `403 Forbidden`: Invalid authorization token
+
+### Supported Survey Sources
+
+The system supports three major Peru polling firms with different data schemas:
+
+| Source | Endpoint | Data Fields |
+|--------|----------|-------------|
+| **IPSOS** | `/ipsos/process` | • Total, Lima, Interior, Urbano, Rural<br>• Regiones: Norte, Centro, Sur, Oriente<br>• NSE: A, B, C, D, E<br>• Género: Masculino, Femenino<br>• Edad: 18-25, 26-42, 43+ |
+| **Datum** | `/datum/process` | • Total<br>• Sexo: Hombre, Mujer<br>• Región: Lima/Callao, Norte, Centro, Sur, Oriente<br>• Zona: Urbana, Rural |
+| **CPI** | `/cpi/process` | • Perú Urbano y Rural<br>• Ámbito: Lima Metropolitana/Provincias/Callao, Interior<br>• Macrozonas: Costa y Sierra Norte, Costa Sur, Sierra Centro y Sur, Oriente<br>• Área: Urbano, Rural<br>• Sexo: Hombres, Mujeres<br>• Grupos de Edad: 18-24, 25-39, 40-70 |
+
+Each source uses a specialized processor that extracts data according to the polling firm's specific format and terminology.
 
 ## Database Scripts
 

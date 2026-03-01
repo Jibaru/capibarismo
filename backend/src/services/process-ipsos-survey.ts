@@ -188,7 +188,7 @@ export class ProcessIpsosSurveyService {
   }
 
   private async convertAndValidate(text: string): Promise<IpsosEncuestaSimple> {
-    const schemaPath = join(__dirname, '../../ipsos_schema_simple.json');
+    const schemaPath = join(__dirname, './data/ipsos_schema_simple.json');
     const schemaContent = await readFile(schemaPath, 'utf-8');
     const jsonSchema = JSON.parse(schemaContent);
 

@@ -180,10 +180,10 @@ export const openApiSpec = {
             name: 'source',
             in: 'path',
             required: true,
-            description: 'Survey source (ipsos or datum)',
+            description: 'Survey source (ipsos, datum, or cpi)',
             schema: {
               type: 'string',
-              enum: ['ipsos', 'datum']
+              enum: ['ipsos', 'datum', 'cpi']
             }
           }
         ],

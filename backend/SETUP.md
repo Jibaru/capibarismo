@@ -167,6 +167,7 @@ Open browser: http://localhost:3001/docs
 You should see Scalar API documentation with:
 - `GET /api/surveys` - List all processed surveys (paginated)
 - `POST /api/surveys/{source}/process` - Extract survey data from PDF (requires authentication)
+  - `{source}` can be `ipsos`, `datum`, or `cpi`
 - `GET /health` - Health check endpoint
 
 ### 6.3 Test List Endpoint (Optional)
@@ -199,8 +200,10 @@ curl -X POST http://localhost:3001/api/surveys/ipsos/process \
 ```
 
 **Note**: This requires:
-- A valid PDF URL
+- A valid PDF URL from a supported source (IPSOS, Datum, or CPI)
+- Replace `ipsos` in the URL with `datum` or `cpi` for other sources
 - The `AUTH_TOKEN` value set in your `.env` file
+
 See [DEVELOPMENT.md](DEVELOPMENT.md) for testing strategies.
 
 ## Troubleshooting
