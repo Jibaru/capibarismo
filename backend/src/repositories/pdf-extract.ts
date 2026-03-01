@@ -10,7 +10,7 @@ export interface IPDFExtractRepository {
 }
 
 export class PostgrePDFExtractRepository implements IPDFExtractRepository {
-  constructor(private db: NeonHttpDatabase) {}
+  constructor(private db: NeonHttpDatabase<any>) {}
 
   async save(extract: PDFExtract): Promise<void> {
     await this.db

@@ -32,3 +32,12 @@ logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+*.tfplan
+lambda-deployment.zip

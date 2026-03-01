@@ -6,13 +6,20 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "tf:vars": "node scripts/generate-tfvars.js",
+    "tf:build": "bash scripts/build-lambda.sh",
+    "tf:init": "cd terraform && terraform init",
+    "tf:plan": "cd terraform && terraform plan",
+    "tf:apply": "cd terraform && terraform apply",
+    "tf:destroy": "cd terraform && terraform destroy",
+    "deploy": "npm run tf:vars && npm run tf:build && npm run tf:apply"
   },
   "keywords": [
     "survey",
@@ -24,6 +31,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@codegenie/serverless-express": "^4.14.0",
     "@mistralai/mistralai": "^1.14.1",
     "@neondatabase/serverless": "^0.10.1",
     "@scalar/express-api-reference": "^0.8.46",
@@ -36,11 +44,13 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.17",
     "@types/pdf-parse": "^1.1.4",
     "drizzle-kit": "^0.29.0",
+    "tsc-alias": "^1.8.16",
     "tsx": "^4.7.1",
     "typescript": "^5.9.3"
   },

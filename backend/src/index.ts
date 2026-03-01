@@ -1,12 +1,12 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { type Express } from 'express';
 import cors from 'cors';
 import { createRoutes } from './routes.js';
 
 const PORT = process.env.PORT || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-function createApp() {
+function createApp(): Express {
   const app = express();
 
   app.use(cors());
@@ -33,13 +33,13 @@ function createApp() {
   return app;
 }
 
+export const app = createApp();
+
 function startServer() {
   if (!process.env.OPENAI_API_KEY) {
     console.error('OPENAI_API_KEY environment variable is required');
     process.exit(1);
   }
-
-  const app = createApp();
 
   app.listen(PORT, () => {
     console.log(`\nServer: http://localhost:${PORT}`);
@@ -47,4 +47,7 @@ function startServer() {
   });
 }
 
-startServer();
+// Only start server if not running in Lambda
+if (process.env.AWS_LAMBDA_FUNCTION_NAME === undefined) {
+  startServer();
+}

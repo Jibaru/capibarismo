@@ -17,7 +17,7 @@ export interface ISurveyRepository {
 }
 
 export class PostgreSurveyRepository implements ISurveyRepository {
-  constructor(private db: NeonHttpDatabase) {}
+  constructor(private db: NeonHttpDatabase<any>) {}
 
   async save(survey: Survey<any>): Promise<void> {
     await this.db.insert(surveys).values({
